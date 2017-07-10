@@ -18,9 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = r'''
 ---
@@ -84,7 +85,7 @@ hw_bios_version:
 hw_ethX:
     description: Interface information (for each interface)
     returned: always
-    type: dictionary of information (macaddress)
+    type: dictionary
     sample:
       - macaddress: 00:11:22:33:44:55
         macaddress_dash: 00-11-22-33-44-55
@@ -92,7 +93,7 @@ hw_ethX:
 hw_eth_ilo:
     description: Interface information (for the iLO network interface)
     returned: always
-    type: dictionary of information (macaddress)
+    type: dictionary
     sample:
       - macaddress: 00:11:22:33:44:BA
       - macaddress_dash: 00-11-22-33-44-BA

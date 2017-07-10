@@ -16,13 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: nxos_snapshot
+extends_documentation_fragment: nxos
 version_added: "2.2"
 short_description: Manage snapshots of the running states of selected features.
 description:
@@ -454,7 +456,7 @@ def main():
                 result['updates'] = action_results
 
                 if (action == 'create' and
-                    module.params['save_snapshot_locally']):
+                        module.params['save_snapshot_locally']):
                     snapshot = get_snapshot(module)
                     written_file = write_on_file(snapshot,
                                     module.params['snapshot_name'], module)

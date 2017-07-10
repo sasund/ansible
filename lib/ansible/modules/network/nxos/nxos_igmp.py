@@ -16,13 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: nxos_igmp
+extends_documentation_fragment: nxos
 version_added: "2.2"
 short_description: Manages IGMP global configuration.
 description:
@@ -231,13 +233,9 @@ def main():
             True in existing.values()) or restart):
         candidate = CustomNetworkConfig(indent=3)
         invoke('get_commands', module, existing, proposed_args, candidate)
+        response = load_config(module, candidate)
+        result.update(response)
 
-        try:
-            response = load_config(module, candidate)
-            result.update(response)
-        except ShellError:
-            exc = get_exception()
-            module.fail_json(msg=str(exc))
     else:
         result['updates'] = []
 

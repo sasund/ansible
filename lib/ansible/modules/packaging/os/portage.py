@@ -21,9 +21,10 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -165,7 +166,6 @@ options:
       - Specifies the number of packages to build simultaneously.
     required: false
     default: None
-    type: int
     version_added: 2.3
 
   loadavg:
@@ -174,7 +174,6 @@ options:
       - other builds running and the load average is at least LOAD
     required: false
     default: None
-    type: float
     version_added: 2.3
 
 requirements: [ gentoolkit ]

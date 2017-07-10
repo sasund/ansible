@@ -28,9 +28,10 @@ ICMP_TYPE_OPTIONS = dict(
     ipv6='--icmpv6-type',
 )
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = '''
 ---
@@ -138,7 +139,7 @@ options:
         matches it. The target can be a user-defined chain (other than the one
         this rule is in), one of the special builtin targets which decide the
         fate of the packet immediately, or an extension (see EXTENSIONS
-        below).  If this option is omitted in a rule (and the goto paramater
+        below).  If this option is omitted in a rule (and the goto parameter
         is not used), then matching the rule will have no effect on the
         packet's fate, but the counters on the rule will be incremented.
     required: false
@@ -345,7 +346,14 @@ EXAMPLES = '''
     table: mangle
     set_dscp_mark_class: CS1
     protocol: tcp
+
+# Set the policy for the INPUT chain to DROP
+- iptables:
+    chain: INPUT
+    policy: DROP
 '''
+
+import re
 
 # import module snippets
 from ansible.module_utils.basic import AnsibleModule
@@ -399,8 +407,13 @@ def construct_rule(params):
         False)
     append_match(rule, params['comment'], 'comment')
     append_param(rule, params['comment'], '--comment', False)
-    append_match(rule, params['ctstate'], 'state')
-    append_csv(rule, params['ctstate'], '--state')
+    if 'conntrack' in params['match']:
+        append_csv(rule, params['ctstate'], '--ctstate')
+    elif 'state' in params['match']:
+        append_csv(rule, params['ctstate'], '--state')
+    elif params['ctstate']:
+        append_match(rule, params['ctstate'], 'conntrack')
+        append_csv(rule, params['ctstate'], '--ctstate')
     append_match(rule, params['limit'] or params['limit_burst'], 'limit')
     append_param(rule, params['limit'], '--limit', False)
     append_param(rule, params['limit_burst'], '--limit-burst', False)
@@ -455,6 +468,16 @@ def set_chain_policy(iptables_path, module, params):
     cmd = push_arguments(iptables_path, '-P', params, make_rule=False)
     cmd.append(params['policy'])
     module.run_command(cmd, check_rc=True)
+
+
+def get_chain_policy(iptables_path, module, params):
+    cmd = push_arguments(iptables_path, '-L', params)
+    rc, out, _ = module.run_command(cmd, check_rc=True)
+    chain_header = out.split("\n")[0]
+    result = re.search(r'\(policy ([A-Z]+)\)', chain_header)
+    if result:
+        return result.group(1)
+    return None
 
 
 def main():
@@ -534,18 +557,22 @@ def main():
         module.fail_json( msg="Either chain or flush parameter must be specified.")
 
     # Flush the table
-    if args['flush']:
+    if args['flush'] is True:
         args['changed'] = True
         if not module.check_mode:
             flush_table(iptables_path, module, module.params)
 
     # Set the policy
     elif module.params['policy']:
-        args['changed'] = True
-        if not module.check_mode:
+        current_policy = get_chain_policy(iptables_path, module, module.params)
+        if not current_policy:
+            module.fail_json(msg='Can\'t detect current policy')
+
+        changed = current_policy != module.params['policy']
+        args['changed'] = changed
+        if changed and not module.check_mode:
             set_chain_policy(iptables_path, module, module.params)
 
-    # Chain
     else:
         insert = (module.params['action'] == 'insert')
         rule_is_present = check_present(iptables_path, module, module.params)
@@ -553,15 +580,33 @@ def main():
 
         # Check if target is up to date
         args['changed'] = (rule_is_present != should_be_present)
+        if args['changed'] is False:
+            # Target is already up to date
+            module.exit_json(**args)
 
-        if args['changed'] and not module.check_mode:
+        # Check only; don't modify
+        if not module.check_mode:
             if should_be_present:
                 if insert:
                     insert_rule(iptables_path, module, module.params)
                 else:
                     append_rule(iptables_path, module, module.params)
             else:
-                remove_rule(iptables_path, module, module.params)
+                insert = (module.params['action'] == 'insert')
+                rule_is_present = check_present(iptables_path, module, module.params)
+                should_be_present = (args['state'] == 'present')
+
+                # Check if target is up to date
+                args['changed'] = (rule_is_present != should_be_present)
+
+                if args['changed'] and not module.check_mode:
+                    if should_be_present:
+                        if insert:
+                            insert_rule(iptables_path, module, module.params)
+                        else:
+                            append_rule(iptables_path, module, module.params)
+                    else:
+                        remove_rule(iptables_path, module, module.params)
 
     module.exit_json(**args)
 

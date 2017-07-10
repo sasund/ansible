@@ -21,9 +21,10 @@
 # this is a windows documentation stub.  actual code lives in the .ps1
 # file of the same name
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = r'''
 ---
@@ -31,7 +32,8 @@ module: win_service
 version_added: "1.7"
 short_description: Manages Windows services
 description:
-    - Manages Windows services
+    - Manages Windows services.
+    - For non-Windows targets, use the M(service) module instead.
 options:
   dependencies:
     description:
@@ -40,7 +42,6 @@ options:
       service.
     - This works by C(dependency_action) to either add/remove or set the
       services in this list.
-    required: False
     version_added: "2.3"
   dependency_action:
     description:
@@ -49,7 +50,6 @@ options:
     - Remove the dependencies to the existing dependencies.
     - Set the dependencies to only the values in the list replacing the
       existing dependencies.
-    required: False
     default: set
     choices:
     - set
@@ -60,18 +60,23 @@ options:
     description:
       - Whether to allow the service user to interact with the desktop.
       - This should only be set to true when using the LocalSystem username.
-    required: False
     default: False
     version_added: "2.3"
   description:
     description:
       - The description to set for the service.
-    required: False
     version_added: "2.3"
   display_name:
     description:
       - The display name to set for the service.
-    required: False
+    version_added: "2.3"
+  force_dependent_services:
+    description:
+    - If True, stopping or restarting a service with dependent services will
+      force the dependent services to stop or restart also.
+    - If False, stopping or restarting a service with dependent services may
+      fail.
+    default: False
     version_added: "2.3"
   name:
     description:
@@ -80,7 +85,6 @@ options:
   path:
     description:
       - The path to the executable to set for the service.
-    required: False
     version_added: "2.3"
   password:
     description:
@@ -88,13 +92,11 @@ options:
       - This and the C(username) argument must be supplied together.
       - If specifying LocalSystem, NetworkService or LocalService this field
         must be an empty string and not null.
-    required: False
     version_added: "2.3"
   start_mode:
     description:
       - Set the startup type for the service.
       - C(delayed) added in Ansible 2.3
-    required: false
     choices:
       - auto
       - manual
@@ -106,7 +108,6 @@ options:
         commands unless necessary.
       - C(restarted) will always bounce the service.
       - C(absent) added in Ansible 2.3
-    required: false
     choices:
       - started
       - stopped
@@ -116,8 +117,9 @@ options:
     description:
       - The username to set the service to start as.
       - This and the C(password) argument must be supplied together.
-    required: False
     version_added: "2.3"
+notes:
+    - For non-Windows targets, use the M(service) module instead.
 author: "Chris Hoffman (@chrishoffman)"
 '''
 
@@ -222,58 +224,58 @@ EXAMPLES = r'''
 
 RETURN = r'''
 exists:
-    description: whether the service exists or not
+    description: Whether the service exists or not.
     returned: success
     type: boolean
     sample: true
 name:
-    description: the service name or id of the service
+    description: The service name or id of the service.
     returned: success and service exists
     type: string
     sample: CoreMessagingRegistrar
 display_name:
-    description: the display name of the installed service
+    description: The display name of the installed service.
     returned: success and service exists
     type: string
     sample: CoreMessaging
-status:
-    description: the current running status of the service
+state:
+    description: The current running status of the service.
     returned: success and service exists
     type: string
     sample: stopped
 start_mode:
-    description: the startup type of the service
+    description: The startup type of the service.
     returned: success and service exists
     type: string
     sample: manual
 path:
-    description:
+    description: The path to the service executable.
     returned: success and service exists
     type: string
     sample: C:\Windows\system32\svchost.exe -k LocalServiceNoNetwork
 description:
-    description: the path to the executable of the service
+    description: The description of the service.
     returned: success and service exists
     type: string
     sample: Manages communication between system components.
 username:
-    description: the username that runs the service
+    description: The username that runs the service.
     returned: success and service exists
     type: string
     sample: LocalSystem
 desktop_interact:
-    description: Whether the current user is allowed to interact with the desktop
+    description: Whether the current user is allowed to interact with the desktop.
     returned: success and service exists
     type: boolean
     sample: False
 dependencies:
-    description: A list of dependencies the service relies on
+    description: A list of services that is depended by this service.
     returned: success and service exists
-    type: List
+    type: list
     sample: False
 depended_by:
-    description: A list of dependencies this service relies on
+    description: A list of services that depend on this service.
     returned: success and service exists
-    type: List
+    type: list
     sample: False
 '''

@@ -16,9 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 
@@ -98,8 +99,8 @@ options:
         - Starting date for the schedule.
         - Required when C(state=present).
         - Please use two '-' in the above format, or you may see an error- TypeError, is not JSON serializable description.
+        - "Format: C(2016--12--01T00:00:00Z)"
         required: false
-        format: 2016--12--01T00:00:00Z
 '''
 
 EXAMPLES = """
@@ -138,7 +139,7 @@ RETURN = """
 schedule_id:
     description: Schedule ID of the newly created schedule
     returned: success
-
+    type: string
 """
 
 from ansible.module_utils.basic import AnsibleModule

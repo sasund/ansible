@@ -17,14 +17,15 @@
 #
 
 ANSIBLE_METADATA = {
+    'metadata_version': '1.0',
     'status': ['preview'],
-    'supported_by': 'community',
-    'version': '1.0'
+    'supported_by': 'community'
 }
 
 DOCUMENTATION = '''
 ---
 module: nxos_evpn_global
+extends_documentation_fragment: nxos
 version_added: "2.2"
 short_description: Handles the EVPN control plane for VXLAN.
 description:
@@ -50,10 +51,12 @@ commands:
     type: list
     sample: ['nv overlay evpn']
 '''
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.nxos import get_config, load_config
 from ansible.module_utils.nxos import nxos_argument_spec
 from ansible.module_utils.nxos import check_args as nxos_check_args
+
 
 def check_args(module, warnings):
     nxos_check_args(module, warnings)
@@ -61,6 +64,7 @@ def check_args(module, warnings):
     for key in ('include_defaults', 'config', 'save'):
         if module.params[key] is not None:
             warnings.append('argument %s is no longer supported, ignoring value' % key)
+
 
 def main():
     argument_spec = dict(
@@ -74,8 +78,7 @@ def main():
 
     argument_spec.update(nxos_argument_spec)
 
-    module = AnsibleModule(argument_spec=argument_spec,
-                                supports_check_mode=True)
+    module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
 
     result = {'changed': False}
 
@@ -105,4 +108,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

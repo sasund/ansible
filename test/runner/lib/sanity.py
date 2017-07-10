@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import, print_function
 
-import datetime
 import glob
 import json
 import os
@@ -19,6 +18,7 @@ from lib.util import (
     display,
     run_command,
     deepest_path,
+    parse_to_dict,
 )
 
 from lib.ansible_util import (
@@ -38,11 +38,26 @@ from lib.executor import (
     install_command_requirements,
     SUPPORTED_PYTHON_VERSIONS,
     intercept_command,
+)
+
+from lib.config import (
     SanityConfig,
 )
 
+from lib.test import (
+    TestSuccess,
+    TestFailure,
+    TestSkipped,
+    TestMessage,
+    calculate_best_confidence,
+)
+
+COMMAND = 'sanity'
+
 PEP8_SKIP_PATH = 'test/sanity/pep8/skip.txt'
 PEP8_LEGACY_PATH = 'test/sanity/pep8/legacy-files.txt'
+
+PYLINT_SKIP_PATH = 'test/sanity/pylint/skip.txt'
 
 
 def command_sanity(args):
@@ -106,8 +121,13 @@ def command_sanity(args):
                 failed.append(result.test + options)
 
     if failed:
-        raise ApplicationError('The %d sanity test(s) listed below (out of %d) failed. See error output above for details.\n%s' % (
-            len(failed), total, '\n'.join(failed)))
+        message = 'The %d sanity test(s) listed below (out of %d) failed. See error output above for details.\n%s' % (
+            len(failed), total, '\n'.join(failed))
+
+        if args.failure_ok:
+            display.error(message)
+        else:
+            raise ApplicationError(message)
 
 
 def command_sanity_code_smell(args, _, script):
@@ -120,10 +140,7 @@ def command_sanity_code_smell(args, _, script):
     test = os.path.splitext(os.path.basename(script))[0]
 
     cmd = [script]
-    env = ansible_environment(args)
-
-    # Since the output from scripts end up in other places besides the console, we don't want color here.
-    env.pop('ANSIBLE_FORCE_COLOR')
+    env = ansible_environment(args, color=False)
 
     try:
         stdout, stderr = run_command(args, cmd, env=env, capture=True)
@@ -147,7 +164,7 @@ def command_sanity_validate_modules(args, targets):
     :rtype: SanityResult
     """
     test = 'validate-modules'
-    env = ansible_environment(args)
+    env = ansible_environment(args, color=False)
 
     paths = [deepest_path(i.path, 'lib/ansible/modules/') for i in targets.include_external]
     paths = sorted(set(p for p in paths if p))
@@ -317,7 +334,7 @@ def command_sanity_pep8(args, targets):
         status = ex.status
 
     if stderr:
-        raise SubprocessError(cmd=cmd, status=status, stderr=stderr)
+        raise SubprocessError(cmd=cmd, status=status, stderr=stderr, stdout=stdout)
 
     if args.explain:
         return SanitySkipped(test)
@@ -354,6 +371,7 @@ def command_sanity_pep8(args, targets):
                 path=PEP8_LEGACY_PATH,
                 line=line,
                 column=1,
+                confidence=calculate_best_confidence(((PEP8_LEGACY_PATH, line), (path, 0)), args.metadata) if args.metadata.changes else None,
             ))
 
         if path in used_paths and path not in failed_result_paths:
@@ -364,6 +382,7 @@ def command_sanity_pep8(args, targets):
                 path=PEP8_LEGACY_PATH,
                 line=line,
                 column=1,
+                confidence=calculate_best_confidence(((PEP8_LEGACY_PATH, line), (path, 0)), args.metadata) if args.metadata.changes else None,
             ))
 
     line = 0
@@ -379,6 +398,7 @@ def command_sanity_pep8(args, targets):
                 path=PEP8_SKIP_PATH,
                 line=line,
                 column=1,
+                confidence=calculate_best_confidence(((PEP8_SKIP_PATH, line), (path, 0)), args.metadata) if args.metadata.changes else None,
             ))
 
     for result in results:
@@ -417,6 +437,89 @@ def command_sanity_pep8(args, targets):
     return SanitySuccess(test)
 
 
+def command_sanity_pylint(args, targets):
+    """
+    :type args: SanityConfig
+    :type targets: SanityTargets
+    :rtype: SanityResult
+    """
+    test = 'pylint'
+
+    with open(PYLINT_SKIP_PATH, 'r') as skip_fd:
+        skip_paths = skip_fd.read().splitlines()
+
+    with open('test/sanity/pylint/disable.txt', 'r') as disable_fd:
+        disable = set(disable_fd.read().splitlines())
+
+    skip_paths_set = set(skip_paths)
+
+    paths = sorted(i.path for i in targets.include if os.path.splitext(i.path)[1] == '.py' and i.path not in skip_paths_set)
+
+    if not paths:
+        return SanitySkipped(test)
+
+    cmd = [
+        'pylint',
+        '--jobs', '0',
+        '--reports', 'n',
+        '--max-line-length', '160',
+        '--rcfile', '/dev/null',
+        '--output-format', 'json',
+        '--disable', ','.join(sorted(disable)),
+    ] + paths
+
+    env = ansible_environment(args)
+
+    try:
+        stdout, stderr = run_command(args, cmd, env=env, capture=True)
+        status = 0
+    except SubprocessError as ex:
+        stdout = ex.stdout
+        stderr = ex.stderr
+        status = ex.status
+
+    if stderr or status >= 32:
+        raise SubprocessError(cmd=cmd, status=status, stderr=stderr, stdout=stdout)
+
+    if args.explain:
+        return SanitySkipped(test)
+
+    if stdout:
+        messages = json.loads(stdout)
+    else:
+        messages = []
+
+    errors = [SanityMessage(
+        message=m['message'],
+        path=m['path'],
+        line=int(m['line']),
+        column=int(m['column']),
+        level=m['type'],
+        code=m['symbol'],
+    ) for m in messages]
+
+    line = 0
+
+    for path in skip_paths:
+        line += 1
+
+        if not os.path.exists(path):
+            # Keep files out of the list which no longer exist in the repo.
+            errors.append(SanityMessage(
+                code='A101',
+                message='Remove "%s" since it does not exist' % path,
+                path=PYLINT_SKIP_PATH,
+                line=line,
+                column=1,
+                confidence=calculate_best_confidence(((PYLINT_SKIP_PATH, line), (path, 0)), args.metadata) if args.metadata.changes else None,
+            ))
+
+    if errors:
+        return SanityFailure(test, messages=errors)
+
+    return SanitySuccess(test)
+
+
 def command_sanity_yamllint(args, targets):
     """
     :type args: SanityConfig
@@ -444,7 +547,7 @@ def command_sanity_yamllint(args, targets):
         status = ex.status
 
     if stderr:
-        raise SubprocessError(cmd=cmd, status=status, stderr=stderr)
+        raise SubprocessError(cmd=cmd, status=status, stderr=stderr, stdout=stdout)
 
     if args.explain:
         return SanitySkipped(test)
@@ -458,6 +561,60 @@ def command_sanity_yamllint(args, targets):
         path=r['path'],
         line=int(r['line']),
         column=int(r['column']),
+        level=r['level'],
+    ) for r in results]
+
+    if results:
+        return SanityFailure(test, messages=results)
+
+    return SanitySuccess(test)
+
+
+def command_sanity_rstcheck(args, targets):
+    """
+    :type args: SanityConfig
+    :type targets: SanityTargets
+    :rtype: SanityResult
+    """
+    test = 'rstcheck'
+
+    with open('test/sanity/rstcheck/ignore-substitutions.txt', 'r') as ignore_fd:
+        ignore_substitutions = sorted(set(ignore_fd.read().splitlines()))
+
+    paths = sorted(i.path for i in targets.include if os.path.splitext(i.path)[1] in ('.rst',))
+
+    if not paths:
+        return SanitySkipped(test)
+
+    cmd = [
+        'rstcheck',
+        '--report', 'warning',
+        '--ignore-substitutions', ','.join(ignore_substitutions),
+    ] + paths
+
+    try:
+        stdout, stderr = run_command(args, cmd, capture=True)
+        status = 0
+    except SubprocessError as ex:
+        stdout = ex.stdout
+        stderr = ex.stderr
+        status = ex.status
+
+    if stdout:
+        raise SubprocessError(cmd=cmd, status=status, stderr=stderr, stdout=stdout)
+
+    if args.explain:
+        return SanitySkipped(test)
+
+    pattern = r'^(?P<path>[^:]*):(?P<line>[0-9]+): \((?P<level>INFO|WARNING|ERROR|SEVERE)/[0-4]\) (?P<message>.*)$'
+
+    results = [parse_to_dict(pattern, line) for line in stderr.splitlines()]
+
+    results = [SanityMessage(
+        message=r['message'],
+        path=r['path'],
+        line=int(r['line']),
+        column=0,
         level=r['level'],
     ) for r in results]
 
@@ -486,11 +643,11 @@ def command_sanity_ansible_doc(args, targets, python_version):
     if not modules:
         return SanitySkipped(test, python_version=python_version)
 
-    env = ansible_environment(args)
+    env = ansible_environment(args, color=False)
     cmd = ['ansible-doc'] + modules
 
     try:
-        stdout, stderr = intercept_command(args, cmd, env=env, capture=True, python_version=python_version)
+        stdout, stderr = intercept_command(args, cmd, target_name='ansible-doc', env=env, capture=True, python_version=python_version)
         status = 0
     except SubprocessError as ex:
         stdout = ex.stdout
@@ -519,20 +676,11 @@ def collect_code_smell_tests():
         skip_tests = skip_fd.read().splitlines()
 
     paths = glob.glob('test/sanity/code-smell/*')
-    paths = sorted(p for p in paths
-                   if os.access(p, os.X_OK)
-                   and os.path.isfile(p)
-                   and os.path.basename(p) not in skip_tests)
+    paths = sorted(p for p in paths if os.access(p, os.X_OK) and os.path.isfile(p) and os.path.basename(p) not in skip_tests)
 
     tests = tuple(SanityFunc(os.path.splitext(os.path.basename(p))[0], command_sanity_code_smell, script=p, intercept=False) for p in paths)
 
     return tests
-
-
-def sanity_init():
-    """Initialize full sanity test list (includes code-smell scripts determined at runtime)."""
-    global SANITY_TESTS  # pylint: disable=locally-disabled, global-statement
-    SANITY_TESTS = tuple(sorted(SANITY_TESTS + collect_code_smell_tests(), key=lambda k: k.name))
 
 
 def sanity_get_tests():
@@ -542,126 +690,27 @@ def sanity_get_tests():
     return SANITY_TESTS
 
 
-class SanityResult(object):
-    """Base class for sanity test results."""
-    def __init__(self, test, python_version=None):
-        """
-        :type test: str
-        :type python_version: str
-        """
-        self.test = test
-        self.python_version = python_version
-
-        try:
-            import junit_xml
-        except ImportError:
-            junit_xml = None
-
-        self.junit = junit_xml
-
-    def write(self, args):
-        """
-        :type args: SanityConfig
-        """
-        self.write_console()
-
-        if args.lint:
-            self.write_lint()
-
-        if args.junit:
-            if self.junit:
-                self.write_junit(args)
-            else:
-                display.warning('Skipping junit xml output because the `junit-xml` python package was not found.', unique=True)
-
-    def write_console(self):
-        """Write results to console."""
-        pass
-
-    def write_lint(self):
-        """Write lint results to stdout."""
-        pass
-
-    def write_junit(self, args):
-        """
-        :type args: SanityConfig
-        """
-        pass
-
-    def save_junit(self, args, test_case, properties=None):
-        """
-        :type args: SanityConfig
-        :type test_case: junit_xml.TestCase
-        :type properties: dict[str, str] | None
-        :rtype: str | None
-        """
-        path = 'test/results/junit/ansible-test-%s' % self.test
-
-        if self.python_version:
-            path += '-python-%s' % self.python_version
-
-        path += '.xml'
-
-        test_suites = [
-            self.junit.TestSuite(
-                name='ansible-test',
-                test_cases=[test_case],
-                timestamp=datetime.datetime.utcnow().replace(microsecond=0).isoformat(),
-                properties=properties,
-            ),
-        ]
-
-        report = self.junit.TestSuite.to_xml_string(test_suites=test_suites, prettyprint=True, encoding='utf-8')
-
-        if args.explain:
-            return
-
-        with open(path, 'wb') as xml:
-            xml.write(report.encode('utf-8', 'strict'))
-
-
-class SanitySuccess(SanityResult):
+class SanitySuccess(TestSuccess):
     """Sanity test success."""
     def __init__(self, test, python_version=None):
         """
         :type test: str
         :type python_version: str
         """
-        super(SanitySuccess, self).__init__(test, python_version)
-
-    def write_junit(self, args):
-        """
-        :type args: SanityConfig
-        """
-        test_case = self.junit.TestCase(name=self.test)
-
-        self.save_junit(args, test_case)
+        super(SanitySuccess, self).__init__(COMMAND, test, python_version)
 
 
-class SanitySkipped(SanityResult):
+class SanitySkipped(TestSkipped):
     """Sanity test skipped."""
     def __init__(self, test, python_version=None):
         """
         :type test: str
         :type python_version: str
         """
-        super(SanitySkipped, self).__init__(test, python_version)
-
-    def write_console(self):
-        """Write results to console."""
-        display.info('No tests applicable.', verbosity=1)
-
-    def write_junit(self, args):
-        """
-        :type args: SanityConfig
-        """
-        test_case = self.junit.TestCase(name=self.test)
-        test_case.add_skipped_info('No tests applicable.')
-
-        self.save_junit(args, test_case)
+        super(SanitySkipped, self).__init__(COMMAND, test, python_version)
 
 
-class SanityFailure(SanityResult):
+class SanityFailure(TestFailure):
     """Sanity test failure."""
     def __init__(self, test, python_version=None, messages=None, summary=None):
         """
@@ -670,116 +719,12 @@ class SanityFailure(SanityResult):
         :type messages: list[SanityMessage]
         :type summary: str
         """
-        super(SanityFailure, self).__init__(test, python_version)
-
-        self.messages = messages
-        self.summary = summary
-
-    def write_console(self):
-        """Write results to console."""
-        if self.summary:
-            display.error(self.summary)
-        else:
-            display.error('Found %d %s issue(s) which need to be resolved:' % (len(self.messages), self.test))
-
-            for message in self.messages:
-                display.error(message)
-
-    def write_lint(self):
-        """Write lint results to stdout."""
-        if self.summary:
-            command = self.format_command()
-            message = 'The test `%s` failed. See stderr output for details.' % command
-            path = 'test/runner/ansible-test'
-            message = SanityMessage(message, path)
-            print(message)
-        else:
-            for message in self.messages:
-                print(message)
-
-    def write_junit(self, args):
-        """
-        :type args: SanityConfig
-        """
-        title = self.format_title()
-        output = self.format_block()
-
-        # Hack to remove ANSI color reset code from SubprocessError messages.
-        output = output.replace(display.clear, '')
-
-        test_case = self.junit.TestCase(classname='sanity', name=self.test)
-
-        # Include a leading newline to improve readability on Shippable "Tests" tab.
-        # Without this, the first line becomes indented.
-        test_case.add_failure_info(message=title, output='\n%s' % output)
-
-        self.save_junit(args, test_case)
-
-    def format_command(self):
-        """
-        :rtype: str
-        """
-        command = 'ansible-test sanity --test %s' % self.test
-
-        if self.python_version:
-            command += ' --python %s' % self.python_version
-
-        return command
-
-    def format_title(self):
-        """
-        :rtype: str
-        """
-        command = self.format_command()
-
-        if self.summary:
-            reason = 'error'
-        else:
-            reason = 'error' if len(self.messages) == 1 else 'errors'
-
-        title = 'The test `%s` failed with the following %s:' % (command, reason)
-
-        return title
-
-    def format_block(self):
-        """
-        :rtype: str
-        """
-        if self.summary:
-            block = self.summary
-        else:
-            block = '\n'.join(str(m) for m in self.messages)
-
-        message = block.strip()
-
-        return message
+        super(SanityFailure, self).__init__(COMMAND, test, python_version, messages, summary)
 
 
-class SanityMessage(object):
+class SanityMessage(TestMessage):
     """Single sanity test message for one file."""
-    def __init__(self, message, path, line=0, column=0, level='error', code=None):
-        """
-        :type message: str
-        :type path: str
-        :type line: int
-        :type column: int
-        :type level: str
-        :type code: str | None
-        """
-        self.path = path
-        self.line = line
-        self.column = column
-        self.level = level
-        self.code = code
-        self.message = message
-
-    def __str__(self):
-        if self.code:
-            msg = '%s %s' % (self.code, self.message)
-        else:
-            msg = self.message
-
-        return '%s:%s:%s: %s' % (self.path, self.line, self.column, msg)
+    pass
 
 
 class SanityTargets(object):
@@ -821,7 +766,15 @@ class SanityFunc(SanityTest):
 SANITY_TESTS = (
     SanityFunc('shellcheck', command_sanity_shellcheck, intercept=False),
     SanityFunc('pep8', command_sanity_pep8, intercept=False),
+    SanityFunc('pylint', command_sanity_pylint, intercept=False),
     SanityFunc('yamllint', command_sanity_yamllint, intercept=False),
+    SanityFunc('rstcheck', command_sanity_rstcheck, intercept=False),
     SanityFunc('validate-modules', command_sanity_validate_modules, intercept=False),
     SanityFunc('ansible-doc', command_sanity_ansible_doc),
 )
+
+
+def sanity_init():
+    """Initialize full sanity test list (includes code-smell scripts determined at runtime)."""
+    global SANITY_TESTS  # pylint: disable=locally-disabled, global-statement
+    SANITY_TESTS = tuple(sorted(SANITY_TESTS + collect_code_smell_tests(), key=lambda k: k.name))

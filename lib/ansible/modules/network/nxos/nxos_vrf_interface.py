@@ -16,13 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: nxos_vrf_interface
+extends_documentation_fragment: nxos
 version_added: "2.1"
 short_description: Manages interface specific VRF configuration.
 description:
@@ -78,6 +80,7 @@ proposed:
     sample: {"interface": "loopback16", "vrf": "ntc"}
 existing:
     description: k/v pairs of existing vrf on the interface
+    returned: always
     type: dict
     sample: {"interface": "loopback16", "vrf": ""}
 end_state:
@@ -101,7 +104,6 @@ import re
 from ansible.module_utils.nxos import get_config, load_config, run_commands
 from ansible.module_utils.nxos import nxos_argument_spec, check_args
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.netcfg import CustomNetworkConfig
 
 
 WARNINGS = []
@@ -171,6 +173,10 @@ def get_vrf_list(module):
 def get_interface_info(interface, module):
     if not interface.startswith('loopback'):
         interface = interface.capitalize()
+
+    interface_type = get_interface_type(interface)
+    intf_module = re.split('\d+', interface)[0]
+    intf_name = interface_type + interface.split(intf_module)[1]
     command = 'show run | section interface.{0}'.format(interface)
     vrf_regex = ".*vrf\s+member\s+(?P<vrf>\S+).*"
 

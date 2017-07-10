@@ -17,9 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 
@@ -44,7 +45,7 @@ options:
 
   name:
     description:
-    - The name of the lun to manage.
+    - The name of the volume to manage.
     required: true
 
   infinite:
@@ -61,13 +62,11 @@ options:
 
   aggregate_name:
     description:
-    - The name of the aggregate the flexvol should exist on.
-    note: required when C(state=present)
+    - The name of the aggregate the flexvol should exist on. Required when C(state=present).
 
   size:
     description:
-    - The size of the volume in (size_unit).
-    note: required when C(state=present)
+    - The size of the volume in (size_unit). Required when C(state=present).
 
   size_unit:
     description:

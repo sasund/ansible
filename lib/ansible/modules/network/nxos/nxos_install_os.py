@@ -16,13 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: nxos_install_os
+extends_documentation_fragment: nxos
 short_description: Set boot options like boot image and kickstart image.
 description:
     - Install an operating system by setting the boot options like boot
@@ -99,6 +101,7 @@ EXAMPLES = '''
 
 RETURN = '''
 install_state:
+    description: Boot and install information.
     returned: always
     type: dictionary
     sample: {
@@ -119,7 +122,6 @@ import re
 from ansible.module_utils.nxos import get_config, load_config, run_commands
 from ansible.module_utils.nxos import nxos_argument_spec, check_args
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.netcfg import CustomNetworkConfig
 
 
 def execute_show_command(command, module, command_type='cli_show_ascii'):

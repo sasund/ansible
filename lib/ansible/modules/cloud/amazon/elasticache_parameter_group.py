@@ -14,31 +14,32 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = """
 ---
-module: elasticache_group_parameter
+module: elasticache_parameter_group
 short_description: Manage cache security groups in Amazon Elasticache.
 description:
   - Manage cache security groups in Amazon Elasticache.
   - Returns information about the specified cache cluster.
 version_added: "2.3"
 author: "Sloane Hertel (@s-hertel)"
+requirements: [ boto3, botocore ]
 options:
   group_family:
     description:
       - The name of the cache parameter group family that the cache parameter group can be used with.
+        Required when creating a cache parameter group.
     choices: ['memcached1.4', 'redis2.6', 'redis2.8', 'redis3.2']
-    required: yes
-    type: string
+    required: no
   name:
     description:
      - A user-specified name for the cache parameter group.
     required: yes
-    type: string
   description:
     description:
       - A user-specified description for the cache parameter group.
@@ -49,9 +50,8 @@ options:
     required: true
   values:
     description:
-      - A user-specified list of parameters to reset or modify for the cache parameter group.
+      - A user-specified dictionary of parameters to reset or modify for the cache parameter group.
     required: no
-    type: dict
     default: None
 """
 
@@ -72,8 +72,8 @@ EXAMPLES = """
       elasticache_parameter_group:
         name: 'test-param-group'
         values:
-          - ['activerehashing', 'yes']
-          - ['client-output-buffer-limit-normal-hard-limit', 4]
+          activerehashing: yes
+          client-output-buffer-limit-normal-hard-limit: 4
         state: 'present'
     - name: 'Reset all modifiable parameters for the test parameter group'
       elasticache_parameter_group:
@@ -125,14 +125,16 @@ try:
 except ImportError:
     HAS_BOTO3 = False
 
+
 def create(module, conn, name, group_family, description):
     """ Create ElastiCache parameter group. """
     try:
         response = conn.create_cache_parameter_group(CacheParameterGroupName=name, CacheParameterGroupFamily=group_family, Description=description)
         changed = True
-    except boto.exception.BotoServerError as e:
-        module.fail_json(msg="Unable to create cache parameter group.", exception=traceback.format_exc())
+    except botocore.exceptions.ClientError as e:
+        module.fail_json(msg="Unable to create cache parameter group.", exception=traceback.format_exc(), **camel_dict_to_snake_dict(e.response))
     return response, changed
+
 
 def delete(module, conn, name):
     """ Delete ElastiCache parameter group. """
@@ -140,9 +142,10 @@ def delete(module, conn, name):
         conn.delete_cache_parameter_group(CacheParameterGroupName=name)
         response = {}
         changed = True
-    except boto.exception.BotoServerError as e:
-        module.fail_json(msg="Unable to delete cache parameter group.", exception=traceback.format_exc())
+    except botocore.exceptions.ClientError as e:
+        module.fail_json(msg="Unable to delete cache parameter group.", exception=traceback.format_exc(), **camel_dict_to_snake_dict(e.response))
     return response, changed
+
 
 def make_current_modifiable_param_dict(module, conn, name):
     """ Gets the current state of the cache parameter group and creates a dict with the format: {ParameterName: [Allowed_Values, DataType, ParameterValue]}"""
@@ -158,6 +161,7 @@ def make_current_modifiable_param_dict(module, conn, name):
             modifiable_params[param["ParameterName"]] = [param["AllowedValues"], param["DataType"], param["ParameterValue"]]
     return modifiable_params
 
+
 def check_valid_modification(module, values, modifiable_params):
     """ Check if the parameters and values in values are valid.  """
     changed_with_update = False
@@ -167,7 +171,7 @@ def check_valid_modification(module, values, modifiable_params):
 
         # check valid modifiable parameters
         if parameter not in modifiable_params:
-            module.fail_json("%s is not a modifiable parameter. Valid parameters to modify are: %s." % (parameter, modifiable_params.keys()))
+            module.fail_json(msg="%s is not a modifiable parameter. Valid parameters to modify are: %s." % (parameter, modifiable_params.keys()))
 
         # check allowed datatype for modified parameters
         str_to_type = {"integer": int, "string": text_type}
@@ -185,6 +189,7 @@ def check_valid_modification(module, values, modifiable_params):
             changed_with_update = True
 
     return changed_with_update
+
 
 def check_changed_parameter_values(values, old_parameters, new_parameters):
     """ Checking if the new values are different than the old values.  """
@@ -205,6 +210,7 @@ def check_changed_parameter_values(values, old_parameters, new_parameters):
 
     return changed_with_update
 
+
 def modify(module, conn, name, values):
     """ Modify ElastiCache parameter group to reflect the new information if it differs from the current. """
     # compares current group parameters with the parameters we've specified to to a value to see if this will change the group
@@ -214,9 +220,10 @@ def modify(module, conn, name, values):
         format_parameters.append({'ParameterName': key, 'ParameterValue': value})
     try:
         response = conn.modify_cache_parameter_group(CacheParameterGroupName=name, ParameterNameValues=format_parameters)
-    except boto.exception.BotoServerError as e:
-        module.fail_json(msg="Unable to modify cache parameter group.", exception=traceback.format_exc())
+    except botocore.exceptions.ClientError as e:
+        module.fail_json(msg="Unable to modify cache parameter group.", exception=traceback.format_exc(), **camel_dict_to_snake_dict(e.response))
     return response
+
 
 def reset(module, conn, name, values):
     """ Reset ElastiCache parameter group if the current information is different from the new information. """
@@ -237,14 +244,15 @@ def reset(module, conn, name, values):
 
     try:
         response = conn.reset_cache_parameter_group(CacheParameterGroupName=name, ParameterNameValues=format_parameters, ResetAllParameters=all_parameters)
-    except boto.exception.BotoServerError as e:
-        module.fail_json(msg="Unable to reset cache parameter group.", exception=traceback.format_exc())
+    except botocore.exceptions.ClientError as e:
+        module.fail_json(msg="Unable to reset cache parameter group.", exception=traceback.format_exc(), **camel_dict_to_snake_dict(e.response))
 
     # determine changed
     new_parameters_dict = make_current_modifiable_param_dict(module, conn, name)
     changed = check_changed_parameter_values(values, old_parameters_dict, new_parameters_dict)
 
     return response, changed
+
 
 def get_info(conn, name):
     """ Gets info about the ElastiCache parameter group. Returns false if it doesn't exist or we don't have access. """
@@ -289,7 +297,7 @@ def main():
     exists = get_info(connection, parameter_group_name)
 
     # check that the needed requirements are available
-    if state == 'present' and not exists and not (parameter_group_family or group_description):
+    if state == 'present' and not (exists and parameter_group_family and group_description):
         module.fail_json(msg="Creating a group requires a family group and a description.")
     elif state == 'reset' and not exists:
         module.fail_json(msg="No group %s to reset. Please create the group before using the state 'reset'." % parameter_group_name)

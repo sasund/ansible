@@ -16,9 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -36,7 +37,6 @@ options:
     description:
       - Remote RMCP port.
     required: false
-    type: int
     default: 623
   user:
     description:
@@ -61,7 +61,6 @@ options:
     description:
       - Maximum number of seconds before interrupt request.
     required: false
-    type: int
     default: 300
 requirements:
   - "python >= 2.6"

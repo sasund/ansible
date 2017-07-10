@@ -17,9 +17,10 @@
 # this is a windows documentation stub, actual code lives in the .ps1
 # file of the same name
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = r'''
 ---
@@ -27,7 +28,8 @@ module: win_stat
 version_added: "1.7"
 short_description: returns information about a Windows file
 description:
-     - Returns information about a Windows file
+     - Returns information about a Windows file.
+     - For non-Windows targets, use the M(stat) module instead.
 options:
     path:
         description:
@@ -44,7 +46,6 @@ options:
               C(checksum_algorithm=md5).
         required: no
         default: True
-        version_removed: "2.3"
     get_checksum:
         description:
             - Whether to return a checksum of the file (default sha1)
@@ -59,6 +60,8 @@ options:
         default: sha1
         choices: ['md5', 'sha1', 'sha256', 'sha384', 'sha512']
         version_added: "2.3"
+notes:
+     - For non-Windows targets, use the M(stat) module instead.
 author: "Chris Church (@cchurch)"
 '''
 
@@ -112,7 +115,7 @@ changed:
 stat:
     description: dictionary containing all the stat data
     returned: success
-    type: dictionary
+    type: complex
     contains:
         attributes:
             description: attributes of the file at path in raw form
@@ -130,11 +133,21 @@ stat:
             returned: success, path exists
             type: float
             sample: 1477984205.15
+        exists:
+            description: if the path exists or not
+            returned: success
+            type: boolean
+            sample: True
         extension:
             description: the extension of the file at path
             returned: success, path exists, path is a file
             type: string
             sample: ".ps1"
+        filename:
+            description: the name of the file (without path)
+            returned: success, path exists, path is a file
+            type: string
+            sammple: foo.ini
         isarchive:
             description: if the path is ready for archiving or not
             returned: success, path exists
@@ -150,7 +163,7 @@ stat:
             returned: success, path exists
             type: boolean
             sample: True
-        islink:
+        islnk:
             description: if the path is a symbolic link or junction or not
             returned: success, path exists
             type: boolean
@@ -192,9 +205,9 @@ stat:
             sample: BUILTIN\Administrators
         path:
             description: the full absolute path to the file
-            returned: success, path exists
+            returned: success, path exists, file exists
             type: string
-            sample: BUILTIN\Administrators
+            sample: C:\foo.ini
         sharename:
             description: the name of share if folder is shared
             returned: success, path exists, file is a directory and isshared == True

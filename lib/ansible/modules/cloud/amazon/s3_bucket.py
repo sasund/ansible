@@ -13,9 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'committer',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'curated'}
+
 
 DOCUMENTATION = '''
 ---
@@ -118,6 +119,7 @@ import traceback
 import xml.etree.ElementTree as ET
 
 import ansible.module_utils.six.moves.urllib.parse as urlparse
+from ansible.module_utils.six import string_types
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.ec2 import get_aws_connection_info, ec2_argument_spec
 from ansible.module_utils.ec2 import sort_json_policy_dict
@@ -209,7 +211,7 @@ def _create_or_update_bucket(connection, module, location):
         else:
             module.fail_json(msg=e.message)
     if policy is not None:
-        if isinstance(policy, basestring):
+        if isinstance(policy, string_types):
             policy = json.loads(policy)
 
         if not policy:
@@ -392,6 +394,11 @@ def main():
 
     flavour = 'aws'
 
+    # bucket names with .'s in them need to use the calling_format option,
+    # otherwise the connection will fail. See https://github.com/boto/boto/issues/2836
+    # for more details.
+    aws_connect_params['calling_format'] = OrdinaryCallingFormat()
+
     # Look at s3_url and tweak connection settings
     # if connecting to Walrus or fakes3
     try:
@@ -401,7 +408,6 @@ def main():
                 host=ceph.hostname,
                 port=ceph.port,
                 is_secure=ceph.scheme == 'https',
-                calling_format=OrdinaryCallingFormat(),
                 **aws_connect_params
             )
             flavour = 'ceph'
@@ -411,14 +417,14 @@ def main():
                 is_secure=fakes3.scheme == 'fakes3s',
                 host=fakes3.hostname,
                 port=fakes3.port,
-                calling_format=OrdinaryCallingFormat(),
                 **aws_connect_params
             )
         elif is_walrus(s3_url):
+            del aws_connect_params['calling_format']
             walrus = urlparse.urlparse(s3_url).hostname
             connection = boto.connect_walrus(walrus, **aws_connect_params)
         else:
-            connection = boto.s3.connect_to_region(location, is_secure=True, calling_format=OrdinaryCallingFormat(), **aws_connect_params)
+            connection = boto.s3.connect_to_region(location, is_secure=True, **aws_connect_params)
             # use this as fallback because connect_to_region seems to fail in boto + non 'classic' aws accounts in some cases
             if connection is None:
                 connection = boto.connect_s3(**aws_connect_params)
@@ -434,7 +440,7 @@ def main():
     state = module.params.get("state")
 
     if state == 'present':
-        create_or_update_bucket(connection, module, location)
+        create_or_update_bucket(connection, module, location, flavour=flavour)
     elif state == 'absent':
         destroy_bucket(connection, module, flavour=flavour)
 

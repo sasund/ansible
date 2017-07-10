@@ -17,9 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 
@@ -57,21 +58,49 @@ options:
     description:
     - List of licenses to add or remove.
     - Please note that trying to remove a non-existent license will throw an error.
-    valid_options:
-        - base                : Cluster Base License,
-        - nfs                 : NFS License,
-        - cifs                : CIFS License,
-        - iscsi               : iSCSI License,
-        - fcp                 : FCP License,
-        - cdmi                : CDMI License,
-        - snaprestore         : SnapRestore License,
-        - snapmirror          : SnapMirror License,
-        - flexclone           : FlexClone License,
-        - snapvault           : SnapVault License,
-        - snaplock            : SnapLock License,
-        - snapmanagersuite    : SnapManagerSuite License,
-        - snapprotectapps     : SnapProtectApp License,
-        - v_storageattach     : Virtual Attached Storage License
+    suboptions:
+      base:
+        description:
+          - Cluster Base License
+      nfs:
+        description:
+          - NFS License
+      cifs:
+        description:
+          - CIFS License
+      iscsi:
+        description:
+          - iSCSI License
+      fcp:
+        description:
+          - FCP License
+      cdmi:
+        description:
+          - CDMI License
+      snaprestore:
+        description:
+          - SnapRestore License
+      snapmirror:
+        description:
+          - SnapMirror License
+      flexclone:
+        description:
+          - FlexClone License
+      snapvault:
+        description:
+          - SnapVault License
+      snaplock:
+        description:
+          - SnapLock License
+      snapmanagersuite:
+        description:
+          - SnapManagerSuite License
+      snapprotectapps:
+        description:
+          - SnapProtectApp License
+      v_storageattach:
+        description:
+          - Virtual Attached Storage License
 
 '''
 

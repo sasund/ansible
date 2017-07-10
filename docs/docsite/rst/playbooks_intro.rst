@@ -229,6 +229,33 @@ Just `Control-C` to kill it and run it again adding the appropriate password.
    not come into play. Ansible also takes care to not log password
    parameters.
 
+
+.. _order:
+
+.. versionadded:: 2.4
+
+You can also control the order in which hosts are run. The default is to follow the order supplied by the inventory::
+
+    - hosts: all
+      order: sorted
+      gather_facts: False
+      tasks:
+        - debug: var=inventory_hostname
+
+Possible values for order are:
+
+inventory:
+    The default. The order is 'as provided' by the inventory
+reverse_inventory:
+    As the name implies, this reverses the order 'as provided' by the inventory
+sorted:
+    Hosts are alphabetically sorted by name
+reverse_sorted:
+    Hosts are sorted by name in reverse alphabetical order
+shuffle:
+    Hosts are randomly ordered each run
+
+
 .. _tasks_list:
 
 Tasks list
@@ -282,8 +309,8 @@ of arguments and don't use the ``key=value`` form.  This makes
 them work as simply as you would expect::
 
    tasks:
-     - name: disable selinux
-       command: /sbin/setenforce 0
+     - name: enable selinux
+       command: /sbin/setenforce 1
 
 The **command** and **shell** module care about return codes, so if you have a command
 whose successful exit code is not zero, you may wish to do this::

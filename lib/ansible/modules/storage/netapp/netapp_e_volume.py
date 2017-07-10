@@ -18,9 +18,10 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -42,8 +43,6 @@ options:
       required: true
       description:
       - The url to the SANtricity WebServices Proxy or embedded REST API.
-      example:
-      - https://prod-1.wahoo.acme.com/devmgr/v2
   validate_certs:
       required: false
       default: true
@@ -135,12 +134,11 @@ EXAMPLES = '''
 '''
 RETURN = '''
 ---
-msg: "Standard volume [workload_vol_1] has been created."
-msg: "Thin volume [workload_thin_vol] has been created."
-msg: "Volume [workload_vol_1] has been expanded."
-msg: "Volume [workload_vol_1] has been deleted."
-msg: "Volume [workload_vol_1] did not exist."
-msg: "Volume [workload_vol_1] already exists."
+msg:
+    description: State of volume
+    type: string
+    returned: always
+    sample: "Standard volume [workload_vol_1] has been created."
 '''
 
 import json

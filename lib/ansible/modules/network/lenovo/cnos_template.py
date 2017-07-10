@@ -22,13 +22,15 @@
 # Lenovo Networking
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: cnos_template
+author: "Dave Kasberg (@dkasberg)"
 short_description: Manage switch configuration using templates on devices running Lenovo CNOS
 description:
     - This module allows you to work with the running configuration of a switch. It provides a way
@@ -39,7 +41,7 @@ description:
      The results of the operation will be placed in a directory named 'results'
      that must be created by the user in their local directory to where the playbook is run.
      For more information about this module from Lenovo and customizing it usage for your
-     use cases, please visit our [User Guide](http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_template.html)
+     use cases, please visit U(http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_template.html)
 version_added: "2.3"
 extends_documentation_fragment: cnos
 options:
@@ -79,11 +81,13 @@ Tasks : The following are examples of using the module cnos_template. These are 
 
 '''
 RETURN = '''
-  return value: |
-    On successful execution, the method returns a message in JSON format
-    [Template Applied.]
-    Upon any failure, the method returns an error display string.
+msg:
+  description: Success or failure message
+  returned: always
+  type: string
+  sample: "Template Applied."
 '''
+
 import sys
 import paramiko
 import time

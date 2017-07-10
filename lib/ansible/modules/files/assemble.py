@@ -19,9 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = '''
 ---
@@ -95,6 +96,7 @@ options:
 author: "Stephen Fromm (@sfromm)"
 extends_documentation_fragment:
     - files
+    - decrypt
 '''
 
 EXAMPLES = '''
@@ -140,7 +142,7 @@ def assemble_from_fragments(src_path, delimiter=None, compiled_regexp=None, igno
     for f in sorted(os.listdir(src_path)):
         if compiled_regexp and not compiled_regexp.search(f):
             continue
-        fragment = u"%s/%s" % (src_path, f)
+        fragment = os.path.join(src_path, f)
         if not os.path.isfile(fragment) or (ignore_hidden and os.path.basename(fragment).startswith('.')):
             continue
         fragment_content = open(fragment, 'rb').read()

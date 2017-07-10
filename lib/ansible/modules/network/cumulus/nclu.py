@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 DOCUMENTATION = '''
 ---
 module: nclu
@@ -74,7 +75,7 @@ EXAMPLES = '''
   nclu:
     template: |
         {% for iface in range(1,49) %}
-        add int swp{{i}}
+        add int swp{{iface}}
         {% endfor %}
     commit: true
     description: "Ansible - add swps1-48"

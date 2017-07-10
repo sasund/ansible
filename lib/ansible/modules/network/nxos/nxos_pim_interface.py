@@ -16,13 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: nxos_pim_interface
+extends_documentation_fragment: nxos
 version_added: "2.2"
 short_description: Manages PIM interface configuration.
 description:
@@ -157,6 +159,7 @@ proposed:
 existing:
     description:
         - k/v pairs of existing configuration
+    returned: always
     type: dict
     sample: {"border": false, "dr_prio": "1", "hello_interval": "30000",
             "isauth": false, "jp_bidir": false, "jp_policy_in": "JPIN",
@@ -189,7 +192,6 @@ changed:
 from ansible.module_utils.nxos import get_config, load_config, run_commands
 from ansible.module_utils.nxos import nxos_argument_spec, check_args
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.netcfg import CustomNetworkConfig
 
 import time
 

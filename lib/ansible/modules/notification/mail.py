@@ -18,9 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'committer',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -311,6 +312,7 @@ def main():
                 try:
                     smtp.starttls()
                     smtp.ehlo()
+                    auth_flag = smtp.has_extn('AUTH')
                     secure_state = True
                 except smtplib.SMTPException:
                     e = get_exception()

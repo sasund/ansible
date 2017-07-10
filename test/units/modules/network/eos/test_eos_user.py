@@ -39,7 +39,7 @@ class TestEosUserModule(TestEosModule):
         self.mock_get_config.stop()
         self.mock_load_config.stop()
 
-    def load_fixtures(self, commands=None):
+    def load_fixtures(self, commands=None, transport='cli'):
         self.get_config.return_value = load_fixture('eos_user_config.cfg')
         self.load_config.return_value = dict(diff=None, session='session')
 
@@ -95,5 +95,3 @@ class TestEosUserModule(TestEosModule):
         set_module_args(dict(username='ansible', password='test', update_password='always'))
         commands = ['username ansible secret test']
         self.execute_module(changed=True, commands=commands)
-
-

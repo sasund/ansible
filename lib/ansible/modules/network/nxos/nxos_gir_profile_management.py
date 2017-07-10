@@ -16,13 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: nxos_gir_profile_management
+extends_documentation_fragment: nxos
 version_added: "2.2"
 short_description: Create a maintenance-mode or normal-mode profile for GIR.
 description:
@@ -125,7 +127,7 @@ from ansible.module_utils.netcfg import CustomNetworkConfig
 
 def get_existing(module):
     existing = []
-    netcfg = get_config(module)
+    netcfg = CustomNetworkConfig(indent=2, contents=get_config(module))
 
     if module.params['mode'] == 'maintenance':
         parents = ['configure maintenance profile maintenance-mode']

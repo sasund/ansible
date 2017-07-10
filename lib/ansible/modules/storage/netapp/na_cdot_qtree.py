@@ -17,9 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 
@@ -49,8 +50,7 @@ options:
 
   flexvol_name:
     description:
-    - The name of the FlexVol the Qtree should exist on.
-    note: required when C(state=present)
+    - The name of the FlexVol the Qtree should exist on. Required when C(state=present).
 
   vserver:
     description:

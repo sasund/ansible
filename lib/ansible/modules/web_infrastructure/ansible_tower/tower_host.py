@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#coding: utf-8 -*-
+# coding: utf-8 -*-
 
 # (c) 2017, Wayne Witzel III <wayne@riotousliving.com>
 #
@@ -16,14 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: tower_host
 version_added: "2.3"
+author: "Wayne Witzel III (@wwitzel3)"
 short_description: create, update, or destroy Ansible Tower host.
 description:
     - Create, update, or destroy Ansible Tower hosts. See
@@ -124,18 +126,18 @@ except ImportError:
 
 def main():
     module = AnsibleModule(
-        argument_spec = dict(
-            name = dict(required=True),
-            description = dict(),
-            inventory = dict(required=True),
-            enabled = dict(type='bool', default=True),
-            variables = dict(),
-            tower_host = dict(),
-            tower_username = dict(),
-            tower_password = dict(no_log=True),
-            tower_verify_ssl = dict(type='bool', default=True),
-            tower_config_file = dict(type='path'),
-            state = dict(choices=['present', 'absent'], default='present'),
+        argument_spec=dict(
+            name=dict(required=True),
+            description=dict(),
+            inventory=dict(required=True),
+            enabled=dict(type='bool', default=True),
+            variables=dict(),
+            tower_host=dict(),
+            tower_username=dict(),
+            tower_password=dict(no_log=True),
+            tower_verify_ssl=dict(type='bool', default=True),
+            tower_config_file=dict(type='path'),
+            state=dict(choices=['present', 'absent'], default='present'),
         ),
         supports_check_mode=True
     )
@@ -168,7 +170,7 @@ def main():
 
             if state == 'present':
                 result = host.modify(name=name, inventory=inv['id'], enabled=enabled,
-                                    variables=variables, description=description, create_on_missing=True)
+                                     variables=variables, description=description, create_on_missing=True)
                 json_output['id'] = result['id']
             elif state == 'absent':
                 result = host.delete(name=name, inventory=inv['id'])

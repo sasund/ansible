@@ -18,9 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = '''
 ---
@@ -31,6 +32,7 @@ short_description: Add or remove groups
 requirements: [ groupadd, groupdel, groupmod ]
 description:
     - Manage presence of groups on a host.
+    - For Windows targets, use the M(win_group) module instead.
 options:
     name:
         required: true
@@ -52,7 +54,8 @@ options:
         choices: [ "yes", "no" ]
         description:
             - If I(yes), indicates that the group created is a system group.
-
+notes:
+    - For Windows targets, use the M(win_group) module instead.
 '''
 
 EXAMPLES = '''

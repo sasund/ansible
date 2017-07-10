@@ -19,25 +19,26 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: ovirt_groups_facts
-short_description: Retrieve facts about one or more oVirt groups
+short_description: Retrieve facts about one or more oVirt/RHV groups
 author: "Ondra Machacek (@machacekondra)"
 version_added: "2.3"
 description:
-    - "Retrieve facts about one or more oVirt groups."
+    - "Retrieve facts about one or more oVirt/RHV groups."
 notes:
     - "This module creates a new top-level C(ovirt_groups) fact, which
        contains a list of groups."
 options:
     pattern:
       description:
-        - "Search term which is accepted by oVirt search backend."
+        - "Search term which is accepted by oVirt/RHV search backend."
         - "For example to search group X use following pattern: name=X"
 extends_documentation_fragment: ovirt_facts
 '''
@@ -56,7 +57,7 @@ EXAMPLES = '''
 RETURN = '''
 ovirt_groups:
     description: "List of dictionaries describing the groups. Group attribues are mapped to dictionary keys,
-                  all groups attributes can be found at following url: https://ovirt.example.com/ovirt-engine/api/model#types/group."
+                  all groups attributes can be found at following url: http://ovirt.github.io/ovirt-engine-api-model/master/#types/group."
     returned: On success.
     type: list
 '''

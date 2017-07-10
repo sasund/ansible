@@ -43,6 +43,9 @@ def categorize_changes(paths, verbose_command=None):
     additional_paths = set()
 
     for path in paths:
+        if not os.path.exists(path):
+            continue
+
         dependent_paths = mapper.get_dependent_paths(path)
 
         if not dependent_paths:
@@ -77,7 +80,7 @@ def categorize_changes(paths, verbose_command=None):
 
                 # identify targeted integration tests (those which only target a single integration command)
                 if 'integration' in verbose_command and tests.get(verbose_command):
-                    if not any('integration' in command for command in tests.keys() if command != verbose_command):
+                    if not any('integration' in command for command in tests if command != verbose_command):
                         result += ' (targeted)'
             else:
                 result = '%s' % tests
@@ -91,7 +94,7 @@ def categorize_changes(paths, verbose_command=None):
         if any(t == 'all' for t in commands[command]):
             commands[command] = set(['all'])
 
-    commands = dict((c, sorted(commands[c])) for c in commands.keys() if commands[c])
+    commands = dict((c, sorted(commands[c])) for c in commands if commands[c])
 
     return commands
 
@@ -130,19 +133,22 @@ class PathMapper(object):
         :type path: str
         :rtype: list[str]
         """
-        name, ext = os.path.splitext(os.path.split(path)[1])
+        ext = os.path.splitext(os.path.split(path)[1])[1]
 
         if path.startswith('lib/ansible/module_utils/'):
             if ext == '.py':
-                return self.get_python_module_utils_usage(name)
+                return self.get_python_module_utils_usage(path)
 
         return []
 
-    def get_python_module_utils_usage(self, name):
+    def get_python_module_utils_usage(self, path):
         """
-        :type name: str
+        :type path: str
         :rtype: list[str]
         """
+        if path == 'lib/ansible/module_utils/__init__.py':
+            return []
+
         if not self.python_module_utils_imports:
             display.info('Analyzing python module_utils imports...')
             before = time.time()
@@ -150,7 +156,12 @@ class PathMapper(object):
             after = time.time()
             display.info('Processed %d python module_utils in %d second(s).' % (len(self.python_module_utils_imports), after - before))
 
-        return sorted(self.python_module_utils_imports.get(name, set()))
+        name = os.path.splitext(path)[0].replace('/', '.')[4:]
+
+        if name.endswith('.__init__'):
+            name = name[:-9]
+
+        return sorted(self.python_module_utils_imports[name])
 
     def classify(self, path):
         """
@@ -341,6 +352,9 @@ class PathMapper(object):
             }
 
         if path.startswith('test/integration/'):
+            if self.prefixes.get(name) == 'network' and ext == '.yaml':
+                return minimal  # network integration test playbooks are not used by ansible-test
+
             return {
                 'integration': 'all',
                 'windows-integration': 'all',
@@ -369,6 +383,16 @@ class PathMapper(object):
                     }
 
                 test_path = os.path.dirname(test_path)
+
+        if path.startswith('test/runner/lib/cloud/'):
+            cloud_target = 'cloud/%s/' % name
+
+            if cloud_target in self.integration_targets_by_alias:
+                return {
+                    'integration': cloud_target,
+                }
+
+            return all_tests()  # test infrastructure, run all tests
 
         if path.startswith('test/runner/'):
             return all_tests()  # test infrastructure, run all tests

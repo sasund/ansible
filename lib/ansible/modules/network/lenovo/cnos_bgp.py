@@ -22,12 +22,14 @@
 # Lenovo Networking
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 DOCUMENTATION = '''
 ---
 module: cnos_bgp
+author: "Dave Kasberg (@dkasberg)"
 short_description: Manage BGP resources and attributes on devices running Lenovo CNOS
 description:
     - This module allows you to work with Border Gateway Protocol (BGP) related configurations.
@@ -39,10 +41,10 @@ description:
      bgpArg2, bgpArg3, bgpArg4, bgpArg5, bgpArg6, bgpArg7, and bgpArg8. For more details on
      how to use these arguments, see [Overloaded Variables].
      This module uses SSH to manage network device configuration.
-     TThe results of the operation will be placed in a directory named 'results'
+     The results of the operation will be placed in a directory named 'results'
      that must be created by the user in their local directory to where the playbook is run.
      For more information about this module from Lenovo and customizing it usage for your
-     use cases, please visit our [User Guide](http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_bgp.html)
+     use cases, please visit U(http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_bgp.html)
 version_added: "2.3"
 extends_documentation_fragment: cnos
 options:
@@ -356,10 +358,10 @@ Tasks: The following are examples of using the module cnos_bgp. These are writte
 
 '''
 RETURN = '''
-  return value: |
-    On successful execution, the method returns an empty string with the following message in JSON format.
-    [BGP configurations accomplished]
-    Upon any failure, the method returns an error display string. The error must be corrected before attempting the method again.
+msg:
+  description: Success or failure message. Upon any failure, the method returns an error display string.
+  returned: always
+  type: string
 '''
 
 import sys

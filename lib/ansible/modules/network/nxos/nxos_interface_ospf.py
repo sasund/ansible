@@ -16,13 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: nxos_interface_ospf
+extends_documentation_fragment: nxos
 version_added: "2.2"
 short_description: Manages configuration of an OSPF interface instance.
 description:
@@ -279,7 +281,7 @@ def get_value(arg, config, module):
 
 def get_existing(module, args):
     existing = {}
-    netcfg = get_config(module)
+    netcfg = CustomNetworkConfig(indent=2, contents=get_config(module))
     parents = ['interface {0}'.format(module.params['interface'].capitalize())]
     config = netcfg.get_section(parents)
     if 'ospf' in config:
@@ -341,7 +343,7 @@ def get_custom_command(existing_cmd, proposed, key, module):
 
     elif key.startswith('ip ospf message-digest-key'):
         if (proposed['message_digest_key_id'] != 'default' and
-            'options' not in key):
+                'options' not in key):
             if proposed['message_digest_encryption_type'] == '3des':
                 encryption_type = '3'
             elif proposed['message_digest_encryption_type'] == 'cisco_type_7':
@@ -512,18 +514,14 @@ def main():
     proposed['area'] = normalize_area(proposed['area'], module)
     result = {}
     if (state == 'present' or (state == 'absent' and
-        existing.get('ospf') == proposed['ospf'] and
-        existing.get('area') == proposed['area'])):
+            existing.get('ospf') == proposed['ospf'] and
+            existing.get('area') == proposed['area'])):
 
         candidate = CustomNetworkConfig(indent=3)
         invoke('state_%s' % state, module, existing, proposed, candidate)
+        response = load_config(module, candidate)
+        result.update(response)
 
-        try:
-            response = load_config(module, candidate)
-            result.update(response)
-        except ShellError:
-            exc = get_exception()
-            module.fail_json(msg=str(exc))
     else:
         result['updates'] = []
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Ansible module to manage Big Monitoring Fabric service chains
-# (c) 2016, Ted Elhourani <ted@bigswitch.com>,
+# (c) 2016, Ted Elhourani <ted@bigswitch.com>
 #
 # This file is part of Ansible
 #
@@ -19,13 +19,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: bigmon_chain
+author: "Ted (@tedelhourani)"
 short_description: Create and remove a bigmon inline service chain.
 description:
     - Create and remove a bigmon inline service chain.
@@ -67,21 +69,7 @@ EXAMPLES = '''
 '''
 
 
-RETURN = '''
-{
-    "changed": true,
-    "invocation": {
-        "module_args": {
-            "access_token": null,
-            "controller": "192.168.86.221",
-            "name": "MyChain",
-            "state": "present",
-            "validate_certs": false
-        },
-        "module_name": "bigmon_chain"
-    }
-}
-'''
+RETURN = ''' # '''
 
 import os
 from ansible.module_utils.basic import AnsibleModule

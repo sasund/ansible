@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['deprecated'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['deprecated'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -246,7 +247,7 @@ def current_iface_config(module):
 
 
 def build_address(module):
-    # if addr_method == 'dhcp', dont add IP address
+    # if addr_method == 'dhcp', don't add IP address
     if module.params.get('addr_method') == 'dhcp':
         return
     _ipv4 = module.params.get('ipv4')

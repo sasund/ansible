@@ -16,22 +16,27 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
+import collections
 from contextlib import contextmanager
+from copy import deepcopy
 
-from ncclient.xml_ import new_ele, sub_ele, to_xml
-
-from ansible.module_utils.basic import env_fallback
-from ansible.module_utils.netconf import send_request
+from ansible.module_utils.basic import env_fallback, return_values
+from ansible.module_utils.netconf import send_request, children
 from ansible.module_utils.netconf import discard_changes, validate
-from ansible.module_utils.network_common import to_list
-from ansible.module_utils.connection import exec_command
+from ansible.module_utils.six import string_types
+from ansible.module_utils._text import to_text
+
+try:
+    from lxml.etree import Element, SubElement, fromstring, tostring
+    HAS_LXML = True
+except ImportError:
+    from xml.etree.ElementTree import Element, SubElement, fromstring, tostring
+    HAS_LXML = False
 
 ACTIONS = frozenset(['merge', 'override', 'replace', 'update', 'set'])
 JSON_ACTIONS = frozenset(['merge', 'override', 'update'])
 FORMATS = frozenset(['xml', 'text', 'json'])
 CONFIG_FORMATS = frozenset(['xml', 'text', 'json', 'set'])
-
-_DEVICE_CONFIGS = {}
 
 junos_argument_spec = {
     'host': dict(),
@@ -39,23 +44,48 @@ junos_argument_spec = {
     'username': dict(fallback=(env_fallback, ['ANSIBLE_NET_USERNAME'])),
     'password': dict(fallback=(env_fallback, ['ANSIBLE_NET_PASSWORD']), no_log=True),
     'ssh_keyfile': dict(fallback=(env_fallback, ['ANSIBLE_NET_SSH_KEYFILE']), type='path'),
-    'timeout': dict(type='int', default=10),
+    'timeout': dict(type='int'),
     'provider': dict(type='dict'),
+    'transport': dict()
 }
+
+# Add argument's default value here
+ARGS_DEFAULT_VALUE = {
+    'timeout': 10
+}
+
+
+def get_argspec():
+    return junos_argument_spec
+
 
 def check_args(module, warnings):
     provider = module.params['provider'] or {}
     for key in junos_argument_spec:
-        if key in ('provider', 'transport') and module.params[key]:
+        if key not in ('provider',) and module.params[key]:
             warnings.append('argument %s has been deprecated and will be '
-                    'removed in a future version' % key)
+                            'removed in a future version' % key)
 
-def validate_rollback_id(value):
+    # set argument's default value if not provided in input
+    # This is done to avoid unwanted argument deprecation warning
+    # in case argument is not given as input (outside provider).
+    for key in ARGS_DEFAULT_VALUE:
+        if not module.params.get(key, None):
+            module.params[key] = ARGS_DEFAULT_VALUE[key]
+
+    if provider:
+        for param in ('password',):
+            if provider.get(param):
+                module.no_log_values.update(return_values(provider[param]))
+
+
+def _validate_rollback_id(module, value):
     try:
         if not 0 <= int(value) <= 49:
             raise ValueError
     except ValueError:
         module.fail_json(msg='rollback must be between 0 and 49')
+
 
 def load_configuration(module, candidate=None, action='merge', rollback=None, format='xml'):
 
@@ -76,50 +106,73 @@ def load_configuration(module, candidate=None, action='merge', rollback=None, fo
         module.fail_json(msg='format must be text when action is set')
 
     if rollback is not None:
-        validate_rollback_id(rollback)
+        _validate_rollback_id(module, rollback)
         xattrs = {'rollback': str(rollback)}
     else:
         xattrs = {'action': action, 'format': format}
 
-    obj = new_ele('load-configuration', xattrs)
+    obj = Element('load-configuration', xattrs)
 
     if candidate is not None:
         lookup = {'xml': 'configuration', 'text': 'configuration-text',
                   'set': 'configuration-set', 'json': 'configuration-json'}
 
         if action == 'set':
-            cfg = sub_ele(obj, 'configuration-set')
-            cfg.text = '\n'.join(candidate)
+            cfg = SubElement(obj, 'configuration-set')
         else:
-            cfg = sub_ele(obj, lookup[format])
-            cfg.append(candidate)
+            cfg = SubElement(obj, lookup[format])
 
+        if isinstance(candidate, string_types):
+            if format == 'xml':
+                cfg.append(fromstring(candidate))
+            else:
+                cfg.text = to_text(candidate, encoding='latin1')
+        else:
+            cfg.append(candidate)
     return send_request(module, obj)
+
 
 def get_configuration(module, compare=False, format='xml', rollback='0'):
     if format not in CONFIG_FORMATS:
         module.fail_json(msg='invalid config format specified')
     xattrs = {'format': format}
     if compare:
-        validate_rollback_id(rollback)
+        _validate_rollback_id(module, rollback)
         xattrs['compare'] = 'rollback'
         xattrs['rollback'] = str(rollback)
-    return send_request(module, new_ele('get-configuration', xattrs))
+    return send_request(module, Element('get-configuration', xattrs))
+
 
 def commit_configuration(module, confirm=False, check=False, comment=None, confirm_timeout=None):
-    obj = new_ele('commit-configuration')
+    obj = Element('commit-configuration')
     if confirm:
-        sub_ele(obj, 'confirmed')
+        SubElement(obj, 'confirmed')
     if check:
-        sub_ele(obj, 'check')
+        SubElement(obj, 'check')
     if comment:
-        children(obj, ('log', str(comment)))
+        subele = SubElement(obj, 'log')
+        subele.text = str(comment)
     if confirm_timeout:
-        children(obj, ('confirm-timeout', int(confirm_timeout)))
+        subele = SubElement(obj, 'confirm-timeout')
+        subele.text = str(confirm_timeout)
     return send_request(module, obj)
 
-lock_configuration = lambda x: send_request(x, new_ele('lock-configuration'))
-unlock_configuration = lambda x: send_request(x, new_ele('unlock-configuration'))
+
+def command(module, command, format='text', rpc_only=False):
+    xattrs = {'format': format}
+    if rpc_only:
+        command += ' | display xml rpc'
+        xattrs['format'] = 'text'
+    return send_request(module, Element('command', xattrs, text=command))
+
+
+def lock_configuration(x):
+    return send_request(x, Element('lock-configuration'))
+
+
+def unlock_configuration(x):
+    return send_request(x, Element('unlock-configuration'))
+
 
 @contextmanager
 def locked_config(module):
@@ -129,90 +182,208 @@ def locked_config(module):
     finally:
         unlock_configuration(module)
 
-def get_diff(module):
-    reply = get_configuration(module, compare=True, format='text')
-    output = reply.xpath('//configuration-output')
-    if output:
-        return output[0].text
 
-def load(module, candidate, action='merge', commit=False, format='xml'):
-    """Loads a configuration element into the target system
-    """
+def get_diff(module):
+
+    reply = get_configuration(module, compare=True, format='text')
+    output = reply.find('.//configuration-output')
+    if output is not None:
+        return to_text(output.text, encoding='latin1').strip()
+
+
+def load_config(module, candidate, warnings, action='merge', commit=False, format='xml',
+                comment=None, confirm=False, confirm_timeout=None):
+
+    if not candidate:
+        return
+
     with locked_config(module):
-        resp = load_configuration(module, candidate, action=action, format=format)
+        if isinstance(candidate, list):
+            candidate = '\n'.join(candidate)
+
+        reply = load_configuration(module, candidate, action=action, format=format)
+        if isinstance(reply, list):
+            warnings.extend(reply)
 
         validate(module)
         diff = get_diff(module)
 
         if diff:
-            diff = str(diff).strip()
             if commit:
-                commit_configuration(module)
+                commit_configuration(module, confirm=confirm, comment=comment,
+                                     confirm_timeout=confirm_timeout)
             else:
                 discard_changes(module)
 
         return diff
 
 
+def get_param(module, key):
+    return module.params[key] or module.params['provider'].get(key)
 
-# START CLI FUNCTIONS
 
-def get_config(module, flags=[]):
-    cmd = 'show configuration '
-    cmd += ' '.join(flags)
-    cmd = cmd.strip()
+def map_params_to_obj(module, param_to_xpath_map):
+    """
+    Creates a new dictionary with key as xpath corresponding
+    to param and value is a list of dict with metadata and values for
+    the xpath.
+    Acceptable metadata keys:
+        'value': Value of param.
+        'tag_only': Value is indicated by tag only in xml hierarchy.
+        'leaf_only': If operation is to be added at leaf node only.
+        'value_req': If value(text) is requried for leaf node.
+        'is_key': If the field is key or not.
+    eg: Output
+    {
+        'name': [{'value': 'ge-0/0/1'}]
+        'disable': [{'value': True, tag_only': True}]
+    }
 
-    try:
-        return _DEVICE_CONFIGS[cmd]
-    except KeyError:
-        rc, out, err = exec_command(module, cmd)
-        if rc != 0:
-            module.fail_json(msg='unable to retrieve current config', stderr=err)
-        cfg = str(out).strip()
-        _DEVICE_CONFIGS[cmd] = cfg
-        return cfg
+    :param module:
+    :param param_to_xpath_map: Modules params to xpath map
+    :return: obj
+    """
+    obj = collections.OrderedDict()
+    for key, attribute in param_to_xpath_map.items():
+        if key in module.params:
+            is_attribute_dict = False
 
-def run_commands(module, commands, check_rc=True):
-    responses = list()
-    for cmd in to_list(commands):
-        cmd = module.jsonify(cmd)
-        rc, out, err = exec_command(module, cmd)
-        if check_rc and rc != 0:
-            module.fail_json(msg=err, rc=rc)
+            value = module.params[key]
+            if not isinstance(value, (list, tuple)):
+                value = [value]
 
-        try:
-            out = module.from_json(out)
-        except ValueError:
-            out = str(out).strip()
+            if isinstance(attribute, dict):
+                xpath = attribute.get('xpath')
+                is_attribute_dict = True
+            else:
+                xpath = attribute
 
-        responses.append(out)
-    return responses
+            if not obj.get(xpath):
+                obj[xpath] = list()
 
-def load_config(module, config, commit=False, comment=None,
-        confirm=False, confirm_timeout=None):
+            for val in value:
+                if is_attribute_dict:
+                    attr = deepcopy(attribute)
+                    del attr['xpath']
 
-    exec_command(module, 'configure')
+                    attr.update({'value': val})
+                    obj[xpath].append(attr)
+                else:
+                    obj[xpath].append({'value': val})
+    return obj
 
-    for item in to_list(config):
-        rc, out, err = exec_command(module, item)
-        if rc != 0:
-            module.fail_json(msg=str(err))
 
-    exec_command(module, 'top')
-    rc, diff, err = exec_command(module, 'show | compare')
+def map_obj_to_ele(module, want, top, value_map=None):
+    if not HAS_LXML:
+        module.fail_json(msg='lxml is not installed.')
 
-    if commit:
-        cmd = 'commit'
-        if commit:
-            cmd = 'commit confirmed'
-            if confirm_timeout:
-                cmd +' %s' % confirm_timeout
-        if comment:
-            cmd += ' comment "%s"' % comment
-        cmd += ' and-quit'
-        exec_command(module, cmd)
+    root = Element('root')
+    top_ele = top.split('/')
+    ele = SubElement(root, top_ele[0])
+
+    if len(top_ele) > 1:
+        for item in top_ele[1:-1]:
+            ele = SubElement(ele, item)
+    container = ele
+    state = module.params.get('state')
+    active = module.params.get('active')
+    if active:
+        oper = 'active'
     else:
-        for cmd in ['rollback 0', 'exit']:
-            exec_command(module, cmd)
+        oper = 'inactive'
 
-    return str(diff).strip()
+    # build xml subtree
+    for obj in want:
+        if container.tag != top_ele[-1]:
+            node = SubElement(container, top_ele[-1])
+        else:
+            node = container
+
+        for fxpath, attributes in obj.items():
+            for attr in attributes:
+                tag_only = attr.get('tag_only', False)
+                leaf_only = attr.get('leaf_only', False)
+                is_value = attr.get('value_req', False)
+                is_key = attr.get('is_key', False)
+                value = attr.get('value')
+                field_top = attr.get('top')
+                # operation 'delete' is added as element attribute
+                # only if it is key or leaf only node
+                if state == 'absent' and not (is_key or leaf_only):
+                    continue
+
+                # for tag only node if value is false continue to next attr
+                if tag_only and not value:
+                    continue
+
+                # convert param value to device specific value
+                if value_map and fxpath in value_map:
+                    value = value_map[fxpath].get(value)
+
+                if value or tag_only or leaf_only:
+                    ele = node
+                    if field_top:
+                        # eg: top = 'system/syslog/file'
+                        #     field_top = 'system/syslog/file/contents'
+                        # <file>
+                        #   <name>test</name>
+                        #   <contents>
+                        #   </contents>
+                        # </file>
+                        ele_list = root.xpath(top + '/' + field_top)
+
+                        if not len(ele_list):
+                            fields = field_top.split('/')
+                            ele = node
+                            for item in fields:
+                                inner_ele = root.xpath(top + '/' + item)
+                                if len(inner_ele):
+                                    ele = inner_ele[0]
+                                else:
+                                    ele = SubElement(ele, item)
+                        else:
+                            ele = ele_list[0]
+
+                    tags = fxpath.split('/')
+                    if value:
+                        value = to_text(value, errors='surrogate_then_replace')
+
+                    for item in tags:
+                        ele = SubElement(ele, item)
+
+                    if tag_only:
+                        if state == 'present':
+                            if not value:
+                                # if value of tag_only node is false, delete the node
+                                ele.set('delete', 'delete')
+
+                    elif leaf_only:
+                        if state == 'present':
+                            ele.set(oper, oper)
+                            ele.text = value
+                        else:
+                            ele.set('delete', 'delete')
+                            # Add value of leaf node if required while deleting.
+                            # in some cases if value is present while deleting, it
+                            # can result in error, hence the check
+                            if is_value:
+                                ele.text = value
+                            if is_key:
+                                par = ele.getparent()
+                                par.set('delete', 'delete')
+                    else:
+                        ele.text = value
+                        par = ele.getparent()
+
+                        if state == 'present':
+                            # set replace attribute at parent node
+                            if not par.attrib.get('replace'):
+                                par.set('replace', 'replace')
+
+                            # set active/inactive at parent node
+                            if not par.attrib.get(oper):
+                                par.set(oper, oper)
+                        else:
+                            par.set('delete', 'delete')
+
+    return root.getchildren()[0]

@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -72,7 +73,7 @@ options:
     description:
     - List of Base-64 encoded server certificates.
     - If option is omitted certificates will not be checked or changed.
-    - If an emtpy list is passed all assigned certificates will be removed.
+    - If an empty list is passed all assigned certificates will be removed.
     - Certificates already assigned but not passed will be removed.
     required: false
     aliases: ["usercertificate"]

@@ -14,9 +14,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'committer',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'curated'}
+
 
 DOCUMENTATION = '''
 ---
@@ -232,7 +233,9 @@ EXAMPLES = '''
             - "14.04.2-LTS"
             - "15.04"
           metadata:
-            description: "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version. Allowed values: 12.04.5-LTS, 14.04.2-LTS, 15.04."
+            description: >
+                         The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version.
+                         Allowed values: 12.04.5-LTS, 14.04.2-LTS, 15.04."
       variables:
         location: "West US"
         imagePublisher: "Canonical"
@@ -319,7 +322,9 @@ EXAMPLES = '''
               osDisk:
                 name: "osdisk"
                 vhd:
-                  uri: "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'),'.vhd')]"
+                  uri: >
+                       [concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',
+                       variables('OSDiskName'),'.vhd')]
                 caching: "ReadWrite"
                 createOption: "FromImage"
             networkProfile:
@@ -446,7 +451,7 @@ class AzureRMDeploymentManager(AzureRMModuleBase):
         if PREREQ_IMPORT_ERROR:
             self.fail(PREREQ_IMPORT_ERROR)
 
-        for key in self.module_arg_spec.keys() + ['tags']:
+        for key in list(self.module_arg_spec.keys()) + ['tags']:
             setattr(self, key, kwargs[key])
 
         if self.state == 'present':
@@ -563,7 +568,7 @@ class AzureRMDeploymentManager(AzureRMModuleBase):
                                                                                       nested_deployment)
                     except CloudError as exc:
                         self.fail("List nested deployment operations failed with status code: %s and message: %s" %
-                                 (e.status_code, e.message))
+                                 (exc.status_code, exc.message))
                     new_nested_operations = self._get_failed_nested_operations(nested_operations)
                     new_operations += new_nested_operations
         return new_operations

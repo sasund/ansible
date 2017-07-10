@@ -24,8 +24,8 @@ import string
 import random
 
 from ansible import constants as C
-from ansible.compat.six import text_type
 from ansible.errors import AnsibleError
+from ansible.module_utils.six import text_type
 from ansible.module_utils._text import to_bytes, to_native, to_text
 from ansible.parsing.splitter import parse_kv
 from ansible.plugins.lookup import LookupBase
@@ -131,7 +131,7 @@ def _gen_candidate_chars(characters):
         # getattr from string expands things like "ascii_letters" and "digits"
         # into a set of characters.
         chars.append(to_text(getattr(string, to_native(chars_spec), chars_spec),
-                            errors='strict'))
+                     errors='strict'))
     chars = u''.join(chars).replace(u'"', u'').replace(u"'", u'')
     return chars
 

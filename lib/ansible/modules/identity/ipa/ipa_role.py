@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -57,6 +58,15 @@ options:
     - If option is omitted host groups will not be checked or changed.
     - If option is passed all assigned hostgroups that are not passed will be unassigned from the role.
     required: false
+  privilege:
+    description:
+    - List of privileges granted to the role.
+    - If an empty list is passed all assigned privileges will be removed.
+    - If option is omitted privileges will not be checked or changed.
+    - If option is passed all assigned privileges that are not passed will be removed.
+    required: false
+    default: None
+    version_added: "2.4"
   service:
     description:
     - List of service names to assign.
@@ -128,6 +138,9 @@ EXAMPLES = '''
     - host01.example.com
     hostgroup:
     - hostgroup01
+    privilege:
+    - Group Administrators
+    - User Administrators
     service:
     - service01
 
@@ -204,6 +217,12 @@ class RoleIPAClient(IPAClient):
     def role_remove_user(self, name, item):
         return self.role_remove_member(name=name, item={'user': item})
 
+    def role_add_privilege(self, name, item):
+        return self._post_json(method='role_add_privilege', name=name, item={'privilege': item})
+
+    def role_remove_privilege(self, name, item):
+        return self._post_json(method='role_remove_privilege', name=name, item={'privilege': item})
+
 
 def get_role_dict(description=None):
     data = {}
@@ -222,6 +241,7 @@ def ensure(module, client):
     group = module.params['group']
     host = module.params['host']
     hostgroup = module.params['hostgroup']
+    privilege = module.params['privilege']
     service = module.params['service']
     user = module.params['user']
 
@@ -248,7 +268,6 @@ def ensure(module, client):
             changed = client.modify_if_diff(name, ipa_role.get('member_group', []), group,
                                             client.role_add_group,
                                             client.role_remove_group) or changed
-
         if host is not None:
             changed = client.modify_if_diff(name, ipa_role.get('member_host', []), host,
                                             client.role_add_host,
@@ -259,6 +278,10 @@ def ensure(module, client):
                                             client.role_add_hostgroup,
                                             client.role_remove_hostgroup) or changed
 
+        if privilege is not None:
+            changed = client.modify_if_diff(name, ipa_role.get('memberof_privilege', []), privilege,
+                                            client.role_add_privilege,
+                                            client.role_remove_privilege) or changed
         if service is not None:
             changed = client.modify_if_diff(name, ipa_role.get('member_service', []), service,
                                             client.role_add_service,
@@ -267,6 +290,7 @@ def ensure(module, client):
             changed = client.modify_if_diff(name, ipa_role.get('member_user', []), user,
                                             client.role_add_user,
                                             client.role_remove_user) or changed
+
     else:
         if ipa_role:
             changed = True
@@ -284,6 +308,7 @@ def main():
             group=dict(type='list', required=False),
             host=dict(type='list', required=False),
             hostgroup=dict(type='list', required=False),
+            privilege=dict(type='list', required=False),
             service=dict(type='list', required=False),
             state=dict(type='str', required=False, default='present', choices=['present', 'absent']),
             user=dict(type='list', required=False),

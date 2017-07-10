@@ -16,13 +16,14 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = """
 ---
-module: Ordnance_config
+module: ordnance_config
 version_added: "2.3"
 author: "Alexander Turner (alex.turner@ordnance.io)"
 short_description: Manage Ordnance configuration sections
@@ -102,7 +103,7 @@ options:
     choices: ['line', 'block']
   multiline_delimiter:
     description:
-      - This arugment is used when pushing a multiline configuration
+      - This argument is used when pushing a multiline configuration
         element to the Ordnance router.  It specifies the character to use
         as the delimiting character.  This only applies to the
         configuration action
@@ -189,7 +190,7 @@ updates:
 backup_path:
   description: The full path to the backup file
   returned: when backup is yes
-  type: path
+  type: string
   sample: /playbooks/ansible/backup/ordnance_config.2016-07-16@22:28:34
 """
 import re

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#coding: utf-8 -*-
+# coding: utf-8 -*-
 
 # (c) 2017, Wayne Witzel III <wayne@riotousliving.com>
 #
@@ -16,13 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: tower_group
+author: "Wayne Witzel III (@wwitzel3)"
 version_added: "2.3"
 short_description: create, update, or destroy Ansible Tower group.
 description:
@@ -172,29 +174,29 @@ except ImportError:
 
 def main():
     module = AnsibleModule(
-        argument_spec = dict(
-            name = dict(required=True),
-            description = dict(),
-            inventory = dict(required=True),
-            variables = dict(),
-            credential = dict(),
-            source = dict(choices=["manual", "file", "ec2", "rax", "vmware",
-                                   "gce", "azure", "azure_rm", "openstack",
-                                   "satellite6" , "cloudforms", "custom"], default="manual"),
-            source_regions = dict(),
-            source_vars = dict(),
-            instance_filters = dict(),
-            group_by = dict(),
-            source_script = dict(),
-            overwrite = dict(type='bool', default=False),
-            overwrite_vars = dict(),
-            update_on_launch = dict(type='bool' , default=False),
-            tower_host = dict(),
-            tower_username = dict(),
-            tower_password = dict(no_log=True),
-            tower_verify_ssl = dict(type='bool', default=True),
-            tower_config_file = dict(type='path'),
-            state = dict(choices=['present', 'absent'], default='present'),
+        argument_spec=dict(
+            name=dict(required=True),
+            description=dict(),
+            inventory=dict(required=True),
+            variables=dict(),
+            credential=dict(),
+            source=dict(choices=["manual", "file", "ec2", "rax", "vmware",
+                                 "gce", "azure", "azure_rm", "openstack",
+                                 "satellite6", "cloudforms", "custom"], default="manual"),
+            source_regions=dict(),
+            source_vars=dict(),
+            instance_filters=dict(),
+            group_by=dict(),
+            source_script=dict(),
+            overwrite=dict(type='bool', default=False),
+            overwrite_vars=dict(),
+            update_on_launch=dict(type='bool', default=False),
+            tower_host=dict(),
+            tower_username=dict(),
+            tower_password=dict(no_log=True),
+            tower_verify_ssl=dict(type='bool', default=True),
+            tower_config_file=dict(type='path'),
+            state=dict(choices=['present', 'absent'], default='present'),
         ),
         supports_check_mode=True
     )

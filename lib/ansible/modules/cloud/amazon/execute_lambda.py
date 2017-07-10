@@ -14,9 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -126,10 +127,12 @@ output:
 logs:
     description: The last 4KB of the function logs. Only provided if I(tail_log) is true
     type: string
+    returned: if I(tail_log) == true
 status:
     description: C(StatusCode) of API call exit (200 for synchronous invokes, 202 for async)
     type: int
     sample: 200
+    returned: always
 '''
 
 import base64
@@ -231,7 +234,7 @@ def main():
                              "the ARN is correct and your profile has "
                              "permissions to execute this function.",
                              exception=traceback.format_exc())
-        module.fail_json("Client-side error when invoking Lambda, check inputs and specific error",
+        module.fail_json(msg="Client-side error when invoking Lambda, check inputs and specific error",
                          exception=traceback.format_exc())
     except botocore.exceptions.ParamValidationError as ve:
         module.fail_json(msg="Parameters to `invoke` failed to validate",

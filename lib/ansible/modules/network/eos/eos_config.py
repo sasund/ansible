@@ -16,11 +16,10 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {
-    'status': ['preview'],
-    'supported_by': 'core',
-    'version': '1.0'
-}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = """
 ---
@@ -201,7 +200,7 @@ commands:
 backup_path:
   description: The full path to the backup file
   returned: when backup is yes
-  type: path
+  type: string
   sample: /playbooks/ansible/backup/eos_config.2016-07-16@22:28:34
 """
 from ansible.module_utils.basic import AnsibleModule
@@ -332,8 +331,10 @@ def main():
 
     if module.params['save']:
         if not module.check_mode:
-            run_commands(module, ['copy running-config startup-config'])
-        result['changed'] = True
+            response = run_commands(module, ['show running-config diffs'])
+            if len(response[0]):
+                run_commands(module, ['copy running-config startup-config'])
+                result['changed'] = True
 
     module.exit_json(**result)
 

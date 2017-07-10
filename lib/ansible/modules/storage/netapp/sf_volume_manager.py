@@ -17,9 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 
@@ -71,7 +72,7 @@ options:
         description:
         - The ID of the volume to manage or update.
         - In order to create multiple volumes with the same name, but different volume_ids, please declare the I(volume_id)
-          parameter with an arbitary value. However, the specified volume_id will not be assigned to the newly created
+          parameter with an arbitrary value. However, the specified volume_id will not be assigned to the newly created
           volume (since it's an auto-generated property).
         required: false
         default: None
@@ -90,16 +91,15 @@ options:
         default: 'gb'
 
     access:
-        description:
-        - Access allowed for the volume.
         required: false
         choices: ['readOnly', 'readWrite', 'locked', 'replicationTarget']
-        access_type_description:
-        - readOnly: Only read operations are allowed.
-        - readWrite: Reads and writes are allowed.
-        - locked: No reads or writes are allowed.
-        - replicationTarget: Identify a volume as the target volume for a paired set of volumes. If the volume is not paired, the access status is locked.
-        - If unspecified, the access settings of the clone will be the same as the source.
+        description:
+        - "Access allowed for the volume."
+        - "readOnly: Only read operations are allowed."
+        - "readWrite: Reads and writes are allowed."
+        - "locked: No reads or writes are allowed."
+        - "replicationTarget: Identify a volume as the target volume for a paired set of volumes. If the volume is not paired, the access status is locked."
+        - "If unspecified, the access settings of the clone will be the same as the source."
         default: None
 
 '''

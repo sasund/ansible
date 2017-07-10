@@ -19,9 +19,10 @@
 # TODO:
 # Ability to set CPU/Memory reservations
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -74,18 +75,21 @@ options:
     default: None
   esxi:
     description:
-      - Dictionary which includes datacenter and hostname on which the VM should be created. For standalone ESXi hosts, ha-datacenter should be used as the datacenter name
+      - Dictionary which includes datacenter and hostname on which the VM should be created. For standalone ESXi hosts, ha-datacenter should be used as the
+        datacenter name
     required: false
     default: null
   state:
     description:
-      - Indicate desired state of the vm. 'reconfigured' only applies changes to 'vm_cdrom', 'memory_mb', and 'num_cpus' in vm_hardware parameter. The 'memory_mb' and 'num_cpus' changes are applied to powered-on vms when hot-plugging is enabled for the guest.
+      - Indicate desired state of the vm. 'reconfigured' only applies changes to 'vm_cdrom', 'memory_mb', and 'num_cpus' in vm_hardware parameter.
+        The 'memory_mb' and 'num_cpus' changes are applied to powered-on vms when hot-plugging is enabled for the guest.
     default: present
     choices: ['present', 'powered_off', 'absent', 'powered_on', 'restarted', 'reconfigured']
   from_template:
     version_added: "1.9"
     description:
-      - Specifies if the VM should be deployed from a template (mutually exclusive with 'state' parameter). No guest customization changes to hardware such as CPU, RAM, NICs or Disks can be applied when launching from template.
+      - Specifies if the VM should be deployed from a template (mutually exclusive with 'state' parameter). No guest customization changes to hardware
+        such as CPU, RAM, NICs or Disks can be applied when launching from template.
     default: no
     choices: ['yes', 'no']
   template_src:
@@ -127,7 +131,8 @@ options:
     default: null
   vm_hw_version:
     description:
-      - Desired hardware version identifier (for example, "vmx-08" for vms that needs to be managed with vSphere Client). Note that changing hardware version of existing vm is not supported.
+      - Desired hardware version identifier (for example, "vmx-08" for vms that needs to be managed with vSphere Client). Note that changing hardware
+        version of existing vm is not supported.
     required: false
     default: null
     version_added: "1.7"
@@ -785,6 +790,7 @@ def update_disks(vsphere_client, vm, module, vm_disk, changes):
 
     for cnf_disk in vm_disk:
         disk_id = re.sub("disk", "", cnf_disk)
+        disk_type = vm_disk[cnf_disk]['type']
         found = False
         for dev_key in vm._devices:
             if vm._devices[dev_key]['type'] == 'VirtualDisk':
@@ -816,7 +822,10 @@ def update_disks(vsphere_client, vm, module, vm_disk, changes):
             backing.DiskMode = "persistent"
             backing.Split = False
             backing.WriteThrough = False
-            backing.ThinProvisioned = False
+            if disk_type == 'thin':
+                backing.ThinProvisioned = True
+            else:
+                backing.ThinProvisioned = False
             backing.EagerlyScrub = False
             hd.Backing = backing
 
@@ -858,6 +867,7 @@ def reconfigure_vm(vsphere_client, vm, module, esxi, resource_pool, cluster_name
 
     changed, changes = update_disks(vsphere_client, vm,
                                     module, vm_disk, changes)
+    vm.properties._flush_cache()
     request = VI.ReconfigVM_TaskRequestMsg()
 
     # Change extra config
@@ -1004,8 +1014,9 @@ def reconfigure_vm(vsphere_client, vm, module, esxi, resource_pool, cluster_name
             # Make sure the new disk size is higher than the current value
             dev = dev_list[disk_num]
             if disksize < int(dev.capacityInKB):
-              vsphere_client.disconnect()
-              module.fail_json(msg="Error in '%s' definition. New size needs to be higher than the current value (%s GB)." % (disk, int(dev.capacityInKB) / 1024 / 1024))
+                vsphere_client.disconnect()
+                module.fail_json(msg="Error in '%s' definition. New size needs to be higher than the current value (%s GB)." %
+                                     (disk, int(dev.capacityInKB) / 1024 / 1024))
 
             # Set the new disk size
             elif disksize > int(dev.capacityInKB):
@@ -1778,7 +1789,8 @@ def main():
     # CONNECT TO THE SERVER
     viserver = VIServer()
     if validate_certs and not hasattr(ssl, 'SSLContext') and not vcenter_hostname.startswith('http://'):
-        module.fail_json(msg='pysphere does not support verifying certificates with python < 2.7.9.  Either update python or set validate_certs=False on the task')
+        module.fail_json(msg='pysphere does not support verifying certificates with python < 2.7.9.  Either update python or set '
+                             'validate_certs=False on the task')
 
     try:
         viserver.connect(vcenter_hostname, username, password)
@@ -1880,6 +1892,12 @@ def main():
                 "restarted, reconfigured] required an existing VM" % guest)
         elif state == 'absent':
             module.exit_json(changed=False, msg="vm %s not present" % guest)
+
+        # check if user is trying to perform state operation on a vm which doesn't exists
+        elif state in ['present', 'powered_off', 'powered_on'] and not all((vm_extra_config,
+                                                       vm_hardware, vm_disk, vm_nic, esxi)):
+            module.exit_json(changed=False, msg="vm %s not present" % guest)
+
 
         # Create the VM
         elif state in ['present', 'powered_off', 'powered_on']:

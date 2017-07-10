@@ -28,9 +28,10 @@ success:
 '''
 
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -49,10 +50,14 @@ options:
     description:
       - The type of LogicMonitor object you wish to manage.
       - "Collector: Perform actions on a LogicMonitor collector."
-      - NOTE You should use Ansible service modules such as M(service) or M(supervisorctl) for managing the Collector 'logicmonitor-agent' and 'logicmonitor-watchdog' services. Specifically, you'll probably want to start these services after a Collector add and stop these services before a Collector remove.
+      - NOTE You should use Ansible service modules such as M(service) or M(supervisorctl) for managing the Collector 'logicmonitor-agent' and
+        'logicmonitor-watchdog' services. Specifically, you'll probably want to start these services after a Collector add and stop these services
+        before a Collector remove.
       - "Host: Perform actions on a host device."
       - "Hostgroup: Perform actions on a LogicMonitor host group."
-      - 'NOTE Host and Hostgroup tasks should always be performed via delegate_to: localhost. There are no benefits to running these tasks on the remote host and doing so will typically cause problems.'
+      - >
+        NOTE Host and Hostgroup tasks should always be performed via delegate_to: localhost. There are no benefits to running these tasks on the
+        remote host and doing so will typically cause problems.
     required: true
     default: null
     choices: ['collector', 'host', 'datsource', 'hostgroup']
@@ -85,7 +90,8 @@ options:
     description:
       - The fully qualified domain name of a collector in your LogicMonitor account.
       - This is required for the creation of a LogicMonitor host (target=host action=add).
-      - This is required for updating, removing or scheduling downtime for hosts if 'displayname' isn't specified (target=host action=update action=remove action=sdt).
+      - This is required for updating, removing or scheduling downtime for hosts if 'displayname' isn't
+        specified (target=host action=update action=remove action=sdt).
     required: false
     default: null
   hostname:
@@ -524,7 +530,8 @@ import platform
 import socket
 import sys
 import types
-import urllib
+
+from ansible.module_utils.six.moves.urllib.parse import urlencode
 
 HAS_LIB_JSON = True
 try:
@@ -569,8 +576,8 @@ class LogicMonitor(object):
         and return the response"""
         self.module.debug("Running LogicMonitor.rpc")
 
-        param_str = urllib.urlencode(params)
-        creds = urllib.urlencode(
+        param_str = urlencode(params)
+        creds = urlencode(
             {"c": self.company,
                 "u": self.user,
                 "p": self.password})
@@ -608,8 +615,8 @@ class LogicMonitor(object):
          server \"do\" function"""
         self.module.debug("Running LogicMonitor.do...")
 
-        param_str = urllib.urlencode(params)
-        creds = (urllib.urlencode(
+        param_str = urlencode(params)
+        creds = (urlencode(
             {"c": self.company,
                 "u": self.user,
                 "p": self.password}))
@@ -902,15 +909,13 @@ class Collector(LogicMonitor):
                 self.module.run_command("mkdir " + self.installdir)
 
                 try:
-                    f = open(installfilepath, "w")
                     installer = (self.do("logicmonitorsetup",
                                          {"id": self.id,
                                           "arch": arch}))
-                    f.write(installer)
-                    f.closed
+                    with open(installfilepath, "w") as write_file:
+                        write_file.write(installer)
                 except:
                     self.fail(msg="Unable to open installer file for writing")
-                    f.closed
             else:
                 self.module.debug("Collector installer already exists")
                 return installfilepath
@@ -940,7 +945,7 @@ class Collector(LogicMonitor):
             installer = self.get_installer_binary()
 
             if self.info is None:
-                self.module.debug("Retriving collector information")
+                self.module.debug("Retrieving collector information")
                 self.info = self._get()
 
             if not os.path.exists(self.installdir + "/agent"):

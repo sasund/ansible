@@ -19,13 +19,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: bigmon_policy
+author: "Ted (@tedelhourani)"
 short_description: Create and remove a bigmon out-of-band policy.
 description:
     - Create and remove a bigmon out-of-band policy.
@@ -93,27 +95,7 @@ EXAMPLES = '''
     validate_certs: false
 '''
 
-RETURN = '''
-{
-    "changed": false,
-    "invocation": {
-        "module_args": {
-            "access_token": null,
-            "action": "drop",
-            "controller": "192.168.86.221",
-            "delivery_packet_count": 0,
-            "duration": 0,
-            "name": "policy1",
-            "policy_description": "DC 1 traffic policy",
-            "priority": 100,
-            "start_time": "2017-01-13T23:10:41.978584+00:00",
-            "state": "present",
-            "validate_certs": false
-        },
-        "module_name": "bigmon_policy"
-    }
-}
-'''
+RETURN = ''' # '''
 
 import os
 import datetime

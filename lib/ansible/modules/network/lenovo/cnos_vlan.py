@@ -23,13 +23,15 @@
 # Lenovo Networking
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: cnos_vlan
+author: "Dave Kasberg (@dkasberg)"
 short_description: Manage VLAN resources and attributes on devices running Lenovo CNOS
 description:
     - This module allows you to work with VLAN related configurations. The
@@ -45,7 +47,7 @@ description:
      The results of the operation will be placed in a directory named 'results'
      that must be created by the user in their local directory to where the playbook is run.
      For more information about this module from Lenovo and customizing it usage for your
-     use cases, please visit our [User Guide](http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_vlan.html)
+     use cases, please visit U(http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_vlan.html)
 version_added: "2.3"
 extends_documentation_fragment: cnos
 options:
@@ -179,10 +181,11 @@ Tasks: The following are examples of using the module cnos_vlan. These are writt
 
 '''
 RETURN = '''
-return value: |
-    On successful execution, the method returns a message in JSON format
-    [VLAN configurations are successful]
-    Upon any failure, the method returns an error display string.
+msg:
+  description: Success or failure message
+  returned: always
+  type: string
+  sample: "VLAN configuration is accomplished"
 '''
 
 import sys
@@ -280,7 +283,7 @@ def main():
     # need to add logic to check when changes occur or not
     errorMsg = cnos.checkOutputForError(output)
     if(errorMsg is None):
-        module.exit_json(changed=True, msg="VLAN configuration isaccomplished")
+        module.exit_json(changed=True, msg="VLAN configuration is accomplished")
     else:
         module.fail_json(msg=errorMsg)
 

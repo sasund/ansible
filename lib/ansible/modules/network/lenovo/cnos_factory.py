@@ -22,13 +22,15 @@
 # Lenovo Networking
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: cnos_factory
+author: "Dave Kasberg (@dkasberg)"
 short_description: Reset the switch's startup configuration to default (factory) on devices running Lenovo CNOS
 description:
     - This module allows you to reset a switch’s startup configuration. The method provides a way to reset the
@@ -37,7 +39,7 @@ description:
      This module uses SSH to manage network device configuration.
      The results of the operation can be viewed in results directory.
      For more information about this module from Lenovo and customizing it usage for your
-     use cases, please visit our [User Guide](http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_factory.html)
+     use cases, please visit U(http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_factory.html)
 version_added: "2.3"
 extends_documentation_fragment: cnos
 options: {}
@@ -56,11 +58,11 @@ Tasks : The following are examples of using the module cnos_reload. These are wr
 
 '''
 RETURN = '''
-  return value: |
-    On successful execution, the method returns a message in JSON format
-    [Switch Startup Config is Reset to factory settings]
-    Upon any failure, the method returns an error display string.
-
+msg:
+  description: Success or failure message
+  returned: always
+  type: string
+  sample: "Switch Startup Config is Reset to factory settings"
 '''
 
 

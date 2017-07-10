@@ -16,14 +16,16 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 
 module: nxos_ntp_auth
+extends_documentation_fragment: nxos
 version_added: "2.2"
 short_description: Manages NTP authentication.
 description:
@@ -96,6 +98,7 @@ proposed:
 existing:
     description:
         - k/v pairs of existing ntp authentication
+    returned: always
     type: dict
     sample: {"authentication": "off", "trusted_key": "false"}
 end_state:
@@ -125,7 +128,6 @@ changed:
 from ansible.module_utils.nxos import get_config, load_config, run_commands
 from ansible.module_utils.nxos import nxos_argument_spec, check_args
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.netcfg import CustomNetworkConfig
 
 import re
 
@@ -333,11 +335,7 @@ def main():
         if module.check_mode:
             module.exit_json(changed=True, commands=cmds)
         else:
-            try:
-                load_config(module, cmds)
-            except ShellError:
-                clie = get_exception()
-                module.fail_json(msg=str(clie) + ": " + cmds)
+            load_config(module, cmds)
             end_state = get_ntp_auth_info(key_id, module)
             delta = dict(set(end_state.items()).difference(existing.items()))
             if delta or (len(existing) != len(end_state)):

@@ -14,9 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -51,7 +52,7 @@ options:
      default: present
    availability_zone:
      description:
-       - Ignored. Present for backwards compatability
+       - Ignored. Present for backwards compatibility
      required: false
 requirements:
     - "python >= 2.6"
@@ -86,7 +87,7 @@ RETURN = '''
 group:
     description: Dictionary describing the group.
     returned: On success when I(state) is 'present'.
-    type: dictionary
+    type: complex
     contains:
         id:
             description: Unique group ID
@@ -146,7 +147,10 @@ def main():
 
     try:
         cloud = shade.operator_cloud(**module.params)
-        group = cloud.get_group(name, filters={'domain_id': domain_id})
+        if domain_id:
+            group = cloud.get_group(name, filters={'domain_id': domain_id})
+        else:
+            group = cloud.get_group(name)
 
         if module.check_mode:
             module.exit_json(changed=_system_state_change(state, description, group))

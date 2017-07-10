@@ -15,11 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {
-    'status': ['preview'],
-    'supported_by': 'community',
-    'version': '1.0'
-}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -270,7 +269,7 @@ class Swupd(object):
         self.msg = "Failed to check for updates"
 
     def verify_os(self):
-        """Verifies filesystem agains specified or current version"""
+        """Verifies filesystem against specified or current version"""
         if self.module.check_mode:
             self.module.exit_json(changed=self._needs_verify())
 

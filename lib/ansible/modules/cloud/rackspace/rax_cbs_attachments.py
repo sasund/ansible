@@ -16,9 +16,10 @@
 
 # This is a DOCUMENTATION stub specific to this module, it extends
 # a documentation fragment located in ansible.utils.module_docs_fragments
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -30,9 +31,10 @@ version_added: 1.6
 options:
   device:
     description:
-      - The device path to attach the volume to, e.g. /dev/xvde
+      - The device path to attach the volume to, e.g. /dev/xvde.
+      - Before 2.4 this was a required field. Now it can be left to null to auto assign the device name.
     default: null
-    required: true
+    required: false
   volume:
     description:
       - Name or id of the volume to attach/detach
@@ -188,7 +190,7 @@ def main():
     argument_spec = rax_argument_spec()
     argument_spec.update(
         dict(
-            device=dict(required=True),
+            device=dict(required=False),
             volume=dict(required=True),
             server=dict(required=True),
             state=dict(default='present', choices=['present', 'absent']),

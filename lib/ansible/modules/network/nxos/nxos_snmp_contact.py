@@ -16,13 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: nxos_snmp_contact
+extends_documentation_fragment: nxos
 version_added: "2.2"
 short_description: Manages SNMP contact info.
 description:
@@ -63,6 +65,7 @@ proposed:
     sample: {"contact": "New_Test"}
 existing:
     description: k/v pairs of existing snmp contact
+    returned: always
     type: dict
     sample: {"contact": "Test"}
 end_state:
@@ -85,7 +88,6 @@ changed:
 from ansible.module_utils.nxos import get_config, load_config, run_commands
 from ansible.module_utils.nxos import nxos_argument_spec, check_args
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.netcfg import CustomNetworkConfig
 
 
 import re

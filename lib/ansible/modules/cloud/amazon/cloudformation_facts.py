@@ -14,9 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -111,17 +112,19 @@ stack_description:
     returned: always
     type: dict
 stack_outputs:
-    description: Dictionary of stack outputs keyed by the value of each output 'OutputKey' parameter and corresponding value of each output 'OutputValue' parameter
+    description: Dictionary of stack outputs keyed by the value of each output 'OutputKey' parameter and corresponding value of each
+                 output 'OutputValue' parameter
     returned: always
     type: dict
 stack_parameters:
-    description: Dictionary of stack parameters keyed by the value of each parameter 'ParameterKey' parameter and corresponding value of each parameter 'ParameterValue' parameter
+    description: Dictionary of stack parameters keyed by the value of each parameter 'ParameterKey' parameter and corresponding value of
+                 each parameter 'ParameterValue' parameter
     returned: always
     type: dict
 stack_events:
     description: All stack events for the stack
     returned: only if all_facts or stack_events is true
-    type: list of events
+    type: list
 stack_policy:
     description: Describes the stack policy for the stack
     returned: only if all_facts or stack_policy is true
@@ -133,9 +136,10 @@ stack_template:
 stack_resource_list:
     description: Describes stack resources for the stack
     returned: only if all_facts or stack_resourses is true
-    type: list of resources
+    type: list
 stack_resources:
-    description: Dictionary of stack resources keyed by the value of each resource 'LogicalResourceId' parameter and corresponding value of each resource 'PhysicalResourceId' parameter
+    description: Dictionary of stack resources keyed by the value of each resource 'LogicalResourceId' parameter and corresponding value of each
+                 resource 'PhysicalResourceId' parameter
     returned: only if all_facts or stack_resourses is true
     type: dict
 '''

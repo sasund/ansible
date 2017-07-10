@@ -2,7 +2,7 @@
 Ansible by Red Hat, Core 2.3
 ****************************
 ***************************
-Target: February/March 2017
+Target: Mid April 2017
 ***************************
 
 - **General Comments from the Core Team**
@@ -39,11 +39,11 @@ Target: February/March 2017
 - **Windows platform** (nitzmahone)
 
   - Pipelining support **(done)**
-  - Become support **(done)**
+  - Become support **(done/experimental)**
   - Integrated kerberos ticket management (via ansible_user/ansible_password) **(done)**
   - Switch PS input encoding to BOM-less UTF8 **(done)**
-  - Server 2016 support/testing (now RTM’d) **(in progress)**
-  - Modularize Windows module_utils (allow N files) **(in progress)**
+  - Server 2016 support/testing (now RTM’d) **(partial)**
+  - Modularize Windows module_utils (allow N files) **(partial)**
   - Declarative argspec for PS / .NET **(bumped to 2.4)**
   - Kerberos encryption (via notting, pywinrm/requests_kerberos/pykerberos) **(in progress, available in pywinrm post 2.3 release)**
   - Fix plugin-specific connection var lookup/delegation (either registered explicitly by plugins or ansible_(plugin)_*) **(bumped to 2.4)**
@@ -131,11 +131,11 @@ Target: February/March 2017
 
 - **Amazon resources** (ryansb)
 
-  - Improve ec2.py integration tests (pending, likely to make 2.3)
-  - ELB version 2 (pending, will make 2.3 easily)
-  - CloudFormation YAML, cross-stack reference, and roles support (done)
-  - ECS module refactor (partial, may slip to 2.4)
-  - AWS module unit testing w/ placebo (boto3 only) (pending, will make 2.3)
+  - Improve ec2.py integration tests **(partial, more to do in 2.4)**
+  - ELB version 2 **(pushed - needs_revision [PR](https://github.com/ansible/ansible/pull/19491))**
+  - CloudFormation YAML, cross-stack reference, and roles support **(done)**
+  - ECS module refactor **(done)**
+  - AWS module unit testing w/ placebo (boto3 only) **(pushed 2.4)**
 
 - **Plugin Loader**
 

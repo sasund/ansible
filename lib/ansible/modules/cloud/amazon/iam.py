@@ -14,9 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'committer',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'curated'}
+
 
 DOCUMENTATION = '''
 ---
@@ -54,7 +55,8 @@ options:
     choices: [ "present", "absent", "update" ]
   path:
     description:
-      - When creating or updating, specify the desired path of the resource. If state is present, it will replace the current path to match what is passed in when they do not match.
+      - When creating or updating, specify the desired path of the resource. If state is present,
+        it will replace the current path to match what is passed in when they do not match.
     required: false
     default: "/"
   trust_policy:
@@ -100,7 +102,8 @@ options:
     description:
      - C(always) will update passwords if they differ.  C(on_create) will only set the password for newly created users.
 notes:
-  - 'Currently boto does not support the removal of Managed Policies, the module will error out if your user/group/role has managed policies when you try to do state=absent. They will need to be removed manually.'
+  - 'Currently boto does not support the removal of Managed Policies, the module will error out if your
+    user/group/role has managed policies when you try to do state=absent. They will need to be removed manually.'
 author:
     - "Jonathan I. Davila (@defionscode)"
     - "Paul Seiffert (@seiffert)"
@@ -242,7 +245,7 @@ def create_user(module, iam, name, pwd, path, key_state, key_count):
 
 
 def delete_user(module, iam, name):
-    del_meta = ''
+    changed = False
     try:
         current_keys = [ck['access_key_id'] for ck in
             iam.get_all_access_keys(name).list_access_keys_result.access_key_metadata]
@@ -253,17 +256,17 @@ def delete_user(module, iam, name):
         except boto.exception.BotoServerError as err:
             error_msg = boto_exception(err)
             if ('Cannot find Login Profile') in error_msg:
-                del_meta = iam.delete_user(name).delete_user_response
+                iam.delete_user(name)
         else:
             iam.delete_login_profile(name)
-            del_meta = iam.delete_user(name).delete_user_response
+            iam.delete_user(name)
     except Exception as ex:
         module.fail_json(changed=False, msg="delete failed %s" %ex)
         if ('must detach all policies first') in error_msg:
             for policy in iam.get_all_user_policies(name).list_user_policies_result.policy_names:
                 iam.delete_user_policy(name, policy)
             try:
-                del_meta = iam.delete_user(name)
+                iam.delete_user(name)
             except boto.exception.BotoServerError as err:
                 error_msg = boto_exception(err)
                 if ('must detach all policies first') in error_msg:
@@ -275,10 +278,11 @@ def delete_user(module, iam, name):
                     module.fail_json(changed=changed, msg=str(error_msg))
             else:
                 changed = True
-                return del_meta, name, changed
+        else:
+            module.fail_json(changed=changed, msg=str(error_msg))
     else:
         changed = True
-        return del_meta, name, changed
+    return name, changed
 
 
 def update_user(module, iam, name, new_name, new_path, key_state, key_count, keys, pwd, updated):
@@ -452,22 +456,24 @@ def delete_group(module=None, iam=None, name=None):
         iam.delete_group(name)
     except boto.exception.BotoServerError as err:
         error_msg = boto_exception(err)
-        if ('must detach all policies first') in error_msg:
+        if ('must delete policies first') in error_msg:
             for policy in iam.get_all_group_policies(name).list_group_policies_result.policy_names:
                 iam.delete_group_policy(name, policy)
             try:
                 iam.delete_group(name)
             except boto.exception.BotoServerError as err:
                 error_msg = boto_exception(err)
-                if ('must detach all policies first') in error_msg:
+                if ('must delete policies first') in error_msg:
                     module.fail_json(changed=changed, msg="All inline polices have been removed. Though it appears"
                                                           "that %s has Managed Polices. This is not "
                                                           "currently supported by boto. Please detach the polices "
                                                           "through the console and try again." % name)
                 else:
-                    module.fail_json(changed=changed, msg=str(err))
+                    module.fail_json(changed=changed, msg=str(error_msg))
             else:
                 changed = True
+        else:
+            module.fail_json(changed=changed, msg=str(error_msg))
     else:
         changed = True
     return changed, name
@@ -507,6 +513,8 @@ def create_role(module, iam, name, path, role_list, prof_list, trust_policy_doc)
                 instance_profile_result = iam.create_instance_profile(name,
                     path=path).create_instance_profile_response.create_instance_profile_result.instance_profile
                 iam.add_role_to_instance_profile(name, name)
+        else:
+            instance_profile_result = iam.get_instance_profile(name).get_instance_profile_response.get_instance_profile_result.instance_profile
     except boto.exception.BotoServerError as err:
         module.fail_json(changed=changed, msg=str(err))
     else:
@@ -700,7 +708,7 @@ def main():
             if name_change and new_name:
                 orig_name = name
                 name = new_name
-            if groups:
+            if isinstance(groups, list):
                 user_groups, groups_changed = set_users_groups(
                     module, iam, name, groups, been_updated, new_name)
                 if groups_changed == user_changed:
@@ -733,7 +741,7 @@ def main():
             if user_exists:
                 try:
                     set_users_groups(module, iam, name, '')
-                    del_meta, name, changed = delete_user(module, iam, name)
+                    name, changed = delete_user(module, iam, name)
                     module.exit_json(deleted_user=name, changed=changed)
 
                 except Exception as ex:

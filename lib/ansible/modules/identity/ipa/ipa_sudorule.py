@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -118,7 +119,7 @@ version_added: "2.3"
 '''
 
 EXAMPLES = '''
-# Ensure sudo rule is present thats allows all every body to execute any command on any host without beeing asked for a password.
+# Ensure sudo rule is present that's allows all every body to execute any command on any host without being asked for a password.
 - ipa_sudorule:
     name: sudo_all_nopasswd
     cmdcategory: all

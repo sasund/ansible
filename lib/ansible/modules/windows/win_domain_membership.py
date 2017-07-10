@@ -19,11 +19,12 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'core'}
 
-DOCUMENTATION='''
+
+DOCUMENTATION = '''
 module: win_domain_membership
 short_description: Manage domain/workgroup membership for a Windows host
 version_added: 2.3
@@ -57,7 +58,7 @@ author:
     - Matt Davis (@nitzmahone)
 '''
 
-RETURN='''
+RETURN = '''
 reboot_required:
     description: True if changes were made that require a reboot.
     returned: always
@@ -65,7 +66,7 @@ reboot_required:
     sample: true
 '''
 
-EXAMPLES='''
+EXAMPLES = '''
 
 # host should be a member of domain ansible.vagrant; module will ensure the hostname is mydomainclient
 # and will use the passed credentials to join domain if necessary.

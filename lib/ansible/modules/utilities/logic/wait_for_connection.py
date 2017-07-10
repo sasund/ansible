@@ -18,9 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = r'''
 ---
@@ -31,6 +32,7 @@ description:
 - Retries the transport connection after a timeout of C(connect_timeout).
 - Tests the transport connection every C(sleep) seconds.
 - This module makes use of internal ansible transport (and configuration) and the ping/win_ping module to guarantee correct end-to-end functioning.
+- This module is also supported for Windows targets.
 version_added: "2.3"
 options:
   connect_timeout:
@@ -48,18 +50,20 @@ options:
   timeout:
     description:
       - Maximum number of seconds to wait for.
-    default: 300
+    default: 600
+notes:
+- This module is also supported for Windows targets.
 author: "Dag Wieers (@dagwieers)"
 '''
 
 EXAMPLES = r'''
-- name: Wait 300 seconds for target connection to become reachable/usable
+- name: Wait 600 seconds for target connection to become reachable/usable
   wait_for_connection:
 
-- name: Wait 600 seconds, but only start checking after 60 seconds
+- name: Wait 300 seconds, but only start checking after 60 seconds
   wait_for_connection:
     delay: 60
-    timeout: 600
+    timeout: 300
 
 # Wake desktops, wait for them to become ready and continue playbook
 - hosts: all
@@ -89,11 +93,12 @@ EXAMPLES = r'''
       customization:
         hostname: '{{ vm_shortname }}'
         runonce:
-        - powershell.exe -ExecutionPolicy Unrestricted -File C:\Windows\Temp\ConfigureRemotingForAnsible.ps1 -CertValidityDays 3650 -ForceNewSSLCert
+        - powershell.exe -ExecutionPolicy Unrestricted -File C:\Windows\Temp\ConfigureRemotingForAnsible.ps1 -ForceNewSSLCert -EnableCredSSP
     delegate_to: localhost
 
   - name: Wait for system to become reachable over WinRM
     wait_for_connection:
+      timeout: 900
 
   - name: Gather facts for first time
     setup:
@@ -103,6 +108,6 @@ RETURN = r'''
 elapsed:
   description: The number of seconds that elapsed waiting for the connection to appear.
   returned: always
-  type: integer
+  type: int
   sample: 23
 '''

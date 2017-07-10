@@ -16,15 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {
-    'status': ['preview'],
-    'supported_by': 'core',
-    'version': '1.0'
-}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = """
 ---
 module: nxos_user
+extends_documentation_fragment: nxos
 version_added: "2.3"
 author: "Peter Sprygada (@privateip)"
 short_description: Manage the collection of local users on Nexus devices
@@ -298,13 +298,13 @@ def main():
     """ main entry point for module execution
     """
     argument_spec = dict(
-        users=dict(type='list', no_log=True),
+        users=dict(type='list', no_log=True, aliases=['collection']),
         name=dict(),
 
         password=dict(no_log=True),
         update_password=dict(default='always', choices=['on_create', 'always']),
 
-        roles=dict(type='list'),
+        roles=dict(type='list', aliases=['role']),
 
         sshkey=dict(),
 

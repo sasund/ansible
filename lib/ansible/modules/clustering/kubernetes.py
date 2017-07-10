@@ -16,9 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -137,7 +138,7 @@ RETURN = '''
 api_response:
     description: Raw response from Kubernetes API, content varies with API.
     returned: success
-    type: dictionary
+    type: complex
     contains:
         apiVersion: "v1"
         kind: "Namespace"

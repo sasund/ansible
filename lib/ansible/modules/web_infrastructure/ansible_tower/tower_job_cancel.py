@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#coding: utf-8 -*-
+# coding: utf-8 -*-
 
 # (c) 2017, Wayne Witzel III <wayne@riotousliving.com>
 #
@@ -16,13 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: tower_job_cancel
+author: "Wayne Witzel III (@wwitzel3)"
 version_added: "2.3"
 short_description: Cancel an Ansible Tower Job.
 description:
@@ -81,12 +83,12 @@ except ImportError:
 def main():
     argument_spec = tower_argument_spec()
     argument_spec.update(dict(
-        job_id = dict(type='int', required=True),
-        fail_if_not_running = dict(type='bool', default=False),
+        job_id=dict(type='int', required=True),
+        fail_if_not_running=dict(type='bool', default=False),
     ))
 
     module = AnsibleModule(
-        argument_spec = argument_spec,
+        argument_spec=argument_spec,
         supports_check_mode=True,
     )
 

@@ -22,11 +22,11 @@ __metaclass__ = type
 import os
 import sys
 
+from ansible.cli import CLI
 from ansible.errors import AnsibleError, AnsibleOptionsError
+from ansible.module_utils._text import to_text, to_bytes
 from ansible.parsing.dataloader import DataLoader
 from ansible.parsing.vault import VaultEditor
-from ansible.cli import CLI
-from ansible.module_utils._text import to_text, to_bytes
 
 try:
     from __main__ import display
@@ -36,7 +36,17 @@ except ImportError:
 
 
 class VaultCLI(CLI):
-    """ Vault command line class """
+    ''' can encrypt any structured data file used by Ansible.
+    This can include *group_vars/* or *host_vars/* inventory variables,
+    variables loaded by *include_vars* or *vars_files*, or variable files
+    passed on the ansible-playbook command line with *-e @file.yml* or *-e @file.json*.
+    Role variables and defaults are also included!
+
+    Because Ansible tasks, handlers, and other objects are data, these can also be encrypted with vault.
+    If you'd like to not expose what variables you are using, you can keep an individual task file entirely encrypted.
+
+    The password used with vault currently must be the same for all files you wish to use together at the same time.
+    '''
 
     VALID_ACTIONS = ("create", "decrypt", "edit", "encrypt", "encrypt_string", "rekey", "view")
 
@@ -46,22 +56,14 @@ class VaultCLI(CLI):
 
     def __init__(self, args):
 
-        self.vault_pass = None
-        self.new_vault_pass = None
-
+        self.b_vault_pass = None
+        self.b_new_vault_pass = None
         self.encrypt_string_read_stdin = False
-
         super(VaultCLI, self).__init__(args)
 
-    def parse(self):
+    def set_action(self):
 
-        self.parser = CLI.base_parser(
-            vault_opts=True,
-            usage = "usage: %%prog [%s] [--help] [options] vaultfile.yml" % "|".join(self.VALID_ACTIONS),
-            epilog = "\nSee '%s <command> --help' for more information on a specific command.\n\n" % os.path.basename(sys.argv[0])
-        )
-
-        self.set_action()
+        super(VaultCLI, self).set_action()
 
         # options specific to self.actions
         if self.action == "create":
@@ -88,6 +90,17 @@ class VaultCLI(CLI):
             self.parser.set_usage("usage: %prog encrypt-string [--prompt] [options] string_to_encrypt")
         elif self.action == "rekey":
             self.parser.set_usage("usage: %prog rekey [options] file_name")
+
+    def parse(self):
+
+        self.parser = CLI.base_parser(
+            vault_opts=True,
+            usage="usage: %%prog [%s] [options] [vaultfile.yml]" % "|".join(self.VALID_ACTIONS),
+            desc="encryption/decryption utility for Ansible data files",
+            epilog="\nSee '%s <command> --help' for more information on a specific command.\n\n" % os.path.basename(sys.argv[0])
+        )
+
+        self.set_action()
 
         super(VaultCLI, self).parse()
 
@@ -128,29 +141,34 @@ class VaultCLI(CLI):
 
         if self.options.vault_password_file:
             # read vault_pass from a file
-            self.vault_pass = CLI.read_vault_password_file(self.options.vault_password_file, loader)
+            self.b_vault_pass = CLI.read_vault_password_file(self.options.vault_password_file, loader)
 
         if self.options.new_vault_password_file:
             # for rekey only
-            self.new_vault_pass = CLI.read_vault_password_file(self.options.new_vault_password_file, loader)
+            self.b_new_vault_pass = CLI.read_vault_password_file(self.options.new_vault_password_file, loader)
 
-        if not self.vault_pass or self.options.ask_vault_pass:
-            self.vault_pass = self.ask_vault_passwords()
+        if not self.b_vault_pass or self.options.ask_vault_pass:
+            # the 'read' options don't need to ask for password confirmation.
+            # 'edit' is read/write, but the decrypt will confirm.
+            if self.action in ['decrypt', 'edit', 'view', 'rekey']:
+                self.b_vault_pass = self.ask_vault_passwords()
+            else:
+                self.b_vault_pass = self.ask_new_vault_passwords()
 
-        if not self.vault_pass:
+        if not self.b_vault_pass:
             raise AnsibleOptionsError("A password is required to use Ansible's Vault")
 
         if self.action == 'rekey':
-            if not self.new_vault_pass:
-                self.new_vault_pass = self.ask_new_vault_passwords()
-            if not self.new_vault_pass:
+            if not self.b_new_vault_pass:
+                self.b_new_vault_pass = self.ask_new_vault_passwords()
+            if not self.b_new_vault_pass:
                 raise AnsibleOptionsError("A password is required to rekey Ansible's Vault")
 
         if self.action == 'encrypt_string':
             if self.options.encrypt_string_prompt:
                 self.encrypt_string_prompt = True
 
-        self.editor = VaultEditor(self.vault_pass)
+        self.editor = VaultEditor(self.b_vault_pass)
 
         self.execute()
 
@@ -158,6 +176,7 @@ class VaultCLI(CLI):
         os.umask(old_umask)
 
     def execute_encrypt(self):
+        ''' encrypt the supplied file using the provided vault secret '''
 
         if len(self.args) == 0 and sys.stdin.isatty():
             display.display("Reading plaintext input from stdin", stderr=True)
@@ -187,13 +206,14 @@ class VaultCLI(CLI):
         return yaml_ciphertext
 
     def execute_encrypt_string(self):
+        ''' encrypt the supplied string using the provided vault secret '''
         b_plaintext = None
 
         # Holds tuples (the_text, the_source_of_the_string, the variable name if its provided).
         b_plaintext_list = []
 
         # remove the non-option '-' arg (used to indicate 'read from stdin') from the candidate args so
-        # we dont add it to the plaintext list
+        # we don't add it to the plaintext list
         args = [x for x in self.args if x != '-']
 
         # We can prompt and read input, or read from stdin, but not both.
@@ -278,7 +298,7 @@ class VaultCLI(CLI):
         # TODO: offer block or string ala eyaml
 
     def _format_output_vault_strings(self, b_plaintext_list):
-        # If we are only showing one item in the output, we dont need to included commented
+        # If we are only showing one item in the output, we don't need to included commented
         # delimiters in the text
         show_delimiter = False
         if len(b_plaintext_list) > 1:
@@ -310,6 +330,7 @@ class VaultCLI(CLI):
         return output
 
     def execute_decrypt(self):
+        ''' decrypt the supplied file using the provided vault secret '''
 
         if len(self.args) == 0 and sys.stdin.isatty():
             display.display("Reading ciphertext input from stdin", stderr=True)
@@ -321,6 +342,7 @@ class VaultCLI(CLI):
             display.display("Decryption successful", stderr=True)
 
     def execute_create(self):
+        ''' create and open a file in an editor that will be encryped with the provided vault secret when closed'''
 
         if len(self.args) > 1:
             raise AnsibleOptionsError("ansible-vault create can take only one filename argument")
@@ -328,10 +350,12 @@ class VaultCLI(CLI):
         self.editor.create_file(self.args[0])
 
     def execute_edit(self):
+        ''' open and decrypt an existing vaulted file in an editor, that will be encryped again when closed'''
         for f in self.args:
             self.editor.edit_file(f)
 
     def execute_view(self):
+        ''' open, decrypt and view an existing vaulted file using a pager using the supplied vault secret '''
 
         for f in self.args:
             # Note: vault should return byte strings because it could encrypt
@@ -342,11 +366,12 @@ class VaultCLI(CLI):
             self.pager(to_text(self.editor.plaintext(f)))
 
     def execute_rekey(self):
+        ''' re-encrypt a vaulted file with a new secret, the previous secret is required '''
         for f in self.args:
             if not (os.path.isfile(f)):
                 raise AnsibleError(f + " does not exist")
 
         for f in self.args:
-            self.editor.rekey_file(f, self.new_vault_pass)
+            self.editor.rekey_file(f, self.b_new_vault_pass)
 
         display.display("Rekey successful", stderr=True)

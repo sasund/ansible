@@ -16,11 +16,9 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {
-    'status': ['deprecated'],
-    'supported_by': 'community',
-    'version': '1.0'
-}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['deprecated'],
+                    'supported_by': 'community'}
 
 
 DOCUMENTATION = """
@@ -28,7 +26,7 @@ DOCUMENTATION = """
 module: junos_template
 version_added: "2.1"
 author: "Peter Sprygada (@privateip)"
-short_description: Manage configuration on remote devices running Junos
+short_description: Manage configuration on remote devices running Juniper JUNOS
 description:
   - This module will load a candidate configuration
     from a template file onto a remote device running Junos.  The
@@ -89,7 +87,7 @@ options:
     default: null
     choices: ['text', 'xml', 'set']
 requirements:
-  - junos-eznc
+  - ncclient (>=v0.5.2)
 notes:
   - This module requires the netconf system service be enabled on
     the remote device being managed
@@ -113,10 +111,11 @@ EXAMPLES = """
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.junos import check_args, junos_argument_spec
-from ansible.module_utils.junos import get_configuration, load
-from ansible.module_utils.six import text_type
+from ansible.module_utils.junos import get_configuration, load_config
 
+USE_PERSISTENT_CONNECTION = True
 DEFAULT_COMMENT = 'configured by junos_template'
+
 
 def main():
 
@@ -125,9 +124,8 @@ def main():
         confirm=dict(default=0, type='int'),
         comment=dict(default=DEFAULT_COMMENT),
         action=dict(default='merge', choices=['merge', 'overwrite', 'replace']),
-        config_format=dict(choices=['text', 'set', 'xml']),
+        config_format=dict(choices=['text', 'set', 'xml'], default='text'),
         backup=dict(default=False, type='bool'),
-        transport=dict(default='netconf', choices=['netconf'])
     )
 
     argument_spec.update(junos_argument_spec)
@@ -140,21 +138,22 @@ def main():
 
     result = {'changed': False, 'warnings': warnings}
 
-    comment = module.params['comment']
-    confirm = module.params['confirm']
     commit = not module.check_mode
     action = module.params['action']
     src = module.params['src']
     fmt = module.params['config_format']
 
     if action == 'overwrite' and fmt == 'set':
-        module.fail_json(msg="overwrite cannot be used when format is "
-            "set per junos-pyez documentation")
+        module.fail_json(msg="overwrite cannot be used when format is set per junos-pyez documentation")
 
     if module.params['backup']:
-        result['__backup__'] = text_type(get_configuration(module))
+        reply = get_configuration(module, format='set')
+        match = reply.find('.//configuration-set')
+        if match is None:
+            module.fail_json(msg='unable to retrieve device configuration')
+        result['__backup__'] = str(match.text).strip()
 
-    diff = load(module, src, action=action, commit=commit, format=fmt)
+    diff = load_config(module, src, warnings, action=action, commit=commit, format=fmt)
     if diff:
         result['changed'] = True
         if module._diff:

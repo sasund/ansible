@@ -18,9 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -87,14 +88,24 @@ def compare_package(version1, version2):
 
     def normalize(v):
         return [int(x) for x in re.sub(r'(\.0+)*$', '', v).split(".")]
-    return cmp(normalize(version1), normalize(version2))
+    normalized_version1 = normalize(version1)
+    normalized_version2 = normalize(version2)
+    if normalized_version1 == normalized_version2:
+        rc = 0
+    elif normalized_version1 < normalized_version2:
+        rc = -1
+    else:
+        rc = 1
+    return rc
+
 
 def query_package(module, name, depot=None):
     """ Returns whether a package is installed or not and version. """
 
     cmd_list = '/usr/sbin/swlist -a revision -l product'
     if depot:
-        rc, stdout, stderr = module.run_command("%s -s %s %s | grep %s" % (cmd_list, pipes.quote(depot), pipes.quote(name), pipes.quote(name)), use_unsafe_shell=True)
+        rc, stdout, stderr = module.run_command("%s -s %s %s | grep %s" % (cmd_list, pipes.quote(depot), pipes.quote(name), pipes.quote(name)),
+                                                use_unsafe_shell=True)
     else:
         rc, stdout, stderr = module.run_command("%s %s | grep %s" % (cmd_list, pipes.quote(name), pipes.quote(name)), use_unsafe_shell=True)
     if rc == 0:

@@ -17,9 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'committer',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -57,6 +58,7 @@ options:
     default: false
     required: false
     version_added: "2.1"
+    type: bool
   http_timeout:
     description:
       - Timeout for HTTP requests during the image build operation. Provide a positive integer value for the number of
@@ -81,23 +83,27 @@ options:
     default: true
     required: false
     version_added: "2.1"
+    type: bool
   push:
     description:
       - Push the image to the registry. Specify the registry as part of the I(name) or I(repository) parameter.
     default: false
     required: false
     version_added: "2.2"
+    type: bool
   rm:
     description:
       - Remove intermediate containers after build.
     default: true
     required: false
     version_added: "2.1"
+    type: bool
   nocache:
     description:
       - Do not use cache when building an image.
     default: false
     required: false
+    type: bool
   repository:
     description:
       - Full path to a repository. Use with state C(present) to tag the image into the repository. Expects
@@ -134,7 +140,6 @@ options:
       - Provide a dictionary of C(key:value) build arguments that map to Dockerfile ARG directive.
       - Docker expects the value to be a string. For convenience any non-string values will be converted to strings.
       - Requires Docker API >= 1.21 and docker-py >= 1.7.0.
-    type: complex
     required: false
     version_added: "2.2"
   container_limits:
@@ -142,20 +147,19 @@ options:
       - A dictionary of limits applied to each container created by the build process.
     required: false
     version_added: "2.1"
-    type: complex
-    contains:
+    suboptions:
       memory:
-        description: Set memory limit for build
-        type: int
+        description:
+          - Set memory limit for build.
       memswap:
-        description: Total memory (memory + swap), -1 to disable swap
-        type: int
+        description:
+          - Total memory (memory + swap), -1 to disable swap.
       cpushares:
-        description: CPU shares (relative weight)
-        type: int
+        description:
+          - CPU shares (relative weight).
       cpusetcpus:
-        description: CPUs in which to allow execution, e.g., "0-3", "0,1"
-        type: str
+        description:
+          - CPUs in which to allow execution, e.g., "0-3", "0,1".
   use_tls:
     description:
       - "DEPRECATED. Whether to use tls to connect to the docker server. Set to C(no) when TLS will not be used. Set to
@@ -177,7 +181,7 @@ requirements:
   - "docker-py >= 1.7.0"
   - "Docker API >= 1.20"
 
-authors:
+author:
   - Pavel Antonov (@softzilla)
   - Chris Houseknecht (@chouseknecht)
   - James Tanner (@jctanner)
@@ -243,7 +247,7 @@ RETURN = '''
 image:
     description: Image inspection results for the affected image.
     returned: success
-    type: complex
+    type: dict
     sample: {}
 '''
 
@@ -399,9 +403,9 @@ class ImageManager(DockerBaseClass):
                 self.fail("Error getting image %s - %s" % (image_name, str(exc)))
 
             try:
-                image_tar = open(self.archive_path, 'w')
-                image_tar.write(image.data)
-                image_tar.close()
+                with open(self.archive_path, 'w') as fd:
+                    for chunk in image.stream(2048, decode_content=False):
+                        fd.write(chunk)
             except Exception as exc:
                 self.fail("Error writing image archive %s - %s" % (self.archive_path, str(exc)))
 
@@ -573,7 +577,7 @@ def main():
         http_timeout=dict(type='int'),
         load_path=dict(type='path'),
         name=dict(type='str', required=True),
-        nocache=dict(type='str', default=False),
+        nocache=dict(type='bool', default=False),
         path=dict(type='path', aliases=['build_path']),
         pull=dict(type='bool', default=True),
         push=dict(type='bool', default=False),

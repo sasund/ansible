@@ -19,9 +19,10 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = r'''
 ---
@@ -30,6 +31,7 @@ version_added: "1.9.2"
 short_description: Copies files to remote locations on windows hosts.
 description:
 - The C(win_copy) module copies a file on the local box to remote windows locations.
+- For non-Windows targets, use the M(copy) module instead.
 options:
   content:
     description:
@@ -71,6 +73,8 @@ options:
       to destination. Otherwise, if it does not end with "/", the directory
       itself with all contents is copied. This behavior is similar to Rsync.
     required: true
+notes:
+- For non-Windows targets, use the M(copy) module instead.
 author: "Jon Hawkesworth (@jhawkesworth)"
 '''
 

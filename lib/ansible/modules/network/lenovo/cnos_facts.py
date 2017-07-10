@@ -22,20 +22,22 @@
 # Lenovo Networking
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: cnos_facts
+author: "Dave Kasberg (@dkasberg)"
 short_description: Collect facts on devices running Lenovo CNOS
 description:
     - This module allows you to view the switch information. It executes the show sysinfo CLI command on a switch
      and returns a file containing all the system information of the target network device. This module uses SSH to
      manage network device configuration. The results of the operation can be viewed in results directory.
      For more information about this module from Lenovo and customizing it usage for your
-     use cases, please visit our [User Guide](http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_facts.html)
+     use cases, please visit U(http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_facts.html)
 version_added: "2.3"
 extends_documentation_fragment: cnos
 options: {}
@@ -54,12 +56,12 @@ Tasks : The following are examples of using the module cnos_facts. These are wri
       outputfile: "./results/cnos_facts_{{ inventory_hostname }}_output.txt"
 '''
 RETURN = '''
-  return value: |
-    On successful execution, the method returns a message in JSON format
-    [Device Sys Info is saved to file]
-    Upon any failure, the method returns an error display string.
+msg:
+  description: Success or failure message
+  returned: always
+  type: string
+  sample: "Device Sys Info is saved to file"
 '''
-
 
 import sys
 import paramiko

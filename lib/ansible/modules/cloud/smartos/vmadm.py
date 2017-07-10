@@ -19,9 +19,10 @@
 # along with Ansible. If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
@@ -682,7 +683,7 @@ def main():
     uuid = p['uuid']
     state = p['state']
 
-    # Translate the state paramter into something we can use later on.
+    # Translate the state parameter into something we can use later on.
     if state in ['present', 'running']:
         vm_state = 'running'
     elif state in ['stopped', 'created']:

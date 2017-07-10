@@ -21,13 +21,15 @@
 # Module to send Port channel commands to Lenovo Switches
 # Lenovo Networking
 #
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: cnos_portchannel
+author: "Dave Kasberg (@dkasberg)"
 short_description: Manage portchannel (port aggregation) configuration on devices running Lenovo CNOS
 description:
     - This module allows you to work with port aggregation related configurations. The operators
@@ -40,7 +42,7 @@ description:
      The results of the operation will be placed in a directory named 'results'
      that must be created by the user in their local directory to where the playbook is run.
      For more information about this module from Lenovo and customizing it usage for your
-     use cases, please visit our [User Guide](http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_portchannel.html)
+     use cases, please U(http://systemx.lenovofiles.com/help/index.jsp?topic=%2Fcom.lenovo.switchmgt.ansible.doc%2Fcnos_portchannel.html)
 version_added: "2.3"
 extends_documentation_fragment: cnos
 options:
@@ -63,7 +65,7 @@ options:
         required: No
         default: Null
         choices: [aggregation-group number, access or mode or trunk, description, auto or full or half,
-        recieve or send, port-priority, suspend-individual, timeout,     receive or transmit or trap-notification,
+        receive or send, port-priority, suspend-individual, timeout,     receive or transmit or trap-notification,
         tlv-select, Load interval delay in seconds, counter, Name for the MAC Access List, mac-address in HHHH.HHHH.HHHH format,
         THRESHOLD  Value in unit of buffer cell, <64-9216>  MTU in bytes-<64-9216> for L2 packet,<576-9216> for
         L3 IPv4 packet, <1280-9216> for L3 IPv6 packet, enter the instance id, input or output, copp-system-policy,
@@ -79,7 +81,7 @@ options:
         mac-phy-status or management-address or max-frame-size or port-description or port-protocol-vlan or
         port-vlan or power-mdi or protocol-identity or system-capabilities or system-description or system-name
         or vid-management or vlan-name, counter for load interval, policy input name, all or Copp class name to attach,
-        qos, queing, Enter the allowed traffic level, ipv6]
+        qos, queueing, Enter the allowed traffic level, ipv6]
     interfaceArg4:
         description:
             - This is an overloaded Port Channel fourth argument. Usage of this argument can be found is the User Guide referenced above.
@@ -405,12 +407,12 @@ Tasks : The following are examples of using the module cnos_portchannel. These a
 
 '''
 RETURN = '''
-  return value: |
-    On successful execution, the method returns a message in JSON format
-    [Port Channel configurations accomplished]
-    Upon any failure, the method returns an error display string.
+msg:
+  description: Success or failure message
+  returned: always
+  type: string
+  sample: "Port Channel configurations accomplished"
 '''
-
 
 import sys
 import paramiko

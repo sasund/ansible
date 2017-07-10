@@ -16,13 +16,15 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = '''
 ---
 module: nxos_smu
+extends_documentation_fragment: nxos
 version_added: "2.2"
 short_description: Perform SMUs on Cisco NX-OS devices.
 description:
@@ -82,7 +84,6 @@ changed:
 from ansible.module_utils.nxos import get_config, load_config, run_commands
 from ansible.module_utils.nxos import nxos_argument_spec, check_args
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.netcfg import CustomNetworkConfig
 
 import time
 import collections
@@ -173,12 +174,8 @@ def main():
 
     commands = get_commands(module, pkg, file_system)
     if not module.check_mode and commands:
-        try:
-            apply_patch(module, commands)
-            changed = True
-        except ShellError:
-            e = get_exception()
-            module.fail_json(msg=str(e))
+        apply_patch(module, commands)
+        changed = True
 
     if 'configure' in commands:
         commands.pop(0)

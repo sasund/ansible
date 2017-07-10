@@ -18,9 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 
 DOCUMENTATION = '''
@@ -33,16 +34,17 @@ description:
 version_added: "2.3"
 options:
   name:
-    description: Name of the inittab entry.
+    description:
+    - Name of the inittab entry.
     required: True
-    alias: service
-    type: string
+    aliases: ['service']
   runlevel:
-    description: Runlevel of the entry.
+    description:
+    - Runlevel of the entry.
     required: True
-    type: string
   action:
-    description: Action what the init has to do with this entry.
+    description:
+    - Action what the init has to do with this entry.
     required: True
     choices: [
                'respawn',
@@ -58,22 +60,20 @@ options:
                'initdefault',
                'sysinit'
               ]
-    type: string
   command:
-    description: What command has to run.
+    description:
+    - What command has to run.
     required: True
-    type: string
   insertafter:
-    description: After which inittabline should the new entry inserted.
-    type: string
+    description:
+    - After which inittabline should the new entry inserted.
   state:
-    description: Whether the entry should be present or absent in the inittab file
-    type: string
+    description:
+    - Whether the entry should be present or absent in the inittab file
     choices: [ "present", "absent" ]
     default: present
 notes:
-  - The changes are persistent across reboots.
-  - You need root rights to read or adjust the inittab with the lsitab, chitab,
+  - The changes are persistent across reboots, you need root rights to read or adjust the inittab with the lsitab, chitab,
     mkitab or rmitab commands.
   - tested on AIX 7.1.
 requirements: [ 'itertools']
@@ -91,7 +91,7 @@ EXAMPLES = '''
     state: present
   become: yes
 
-# Change inittab enrty startmyservice to runlevel "2" and processaction "wait".
+# Change inittab entry startmyservice to runlevel "2" and processaction "wait".
 - name: Change startmyservice to inittab
   aix_inittab:
     name: startmyservice
@@ -118,14 +118,14 @@ name:
     returned: always
     type: string
     sample: startmyservice
-mgs:
+msg:
     description: action done with the inittab entry
     returned: changed
     type: string
     sample: changed inittab entry startmyservice
 changed:
     description: whether the inittab changed or not
-    return: always
+    returned: always
     type: boolean
     sample: true
 '''
@@ -235,8 +235,7 @@ def main():
                             [mkitab, new_entry])
 
                 if rc != 0:
-                    module.fail_json(
-                        "could not adjust inittab", rc=rc, err=err)
+                    module.fail_json(msg="could not adjust inittab", rc=rc, err=err)
                 result['msg'] = "add inittab entry" + " " + module.params['name']
                 result['changed'] = True
 

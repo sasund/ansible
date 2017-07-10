@@ -16,9 +16,10 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = """
 ---
@@ -162,7 +163,6 @@ EXAMPLES = """
 - name: load a config from disk and replace the current config
   iosxr_config:
     src: config.cfg
-    update: replace
     backup: yes
 """
 
@@ -175,18 +175,20 @@ updates:
 backup_path:
   description: The full path to the backup file
   returned: when backup is yes
-  type: path
+  type: string
   sample: /playbooks/ansible/backup/iosxr01.2016-07-16@22:28:34
 """
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.netcfg import NetworkConfig, dumps
 from ansible.module_utils.iosxr import load_config,get_config
 from ansible.module_utils.iosxr import iosxr_argument_spec
+from ansible.module_utils.iosxr import check_args as iosxr_check_args
 
 DEFAULT_COMMIT_COMMENT = 'configured by iosxr_config'
 
 
 def check_args(module, warnings):
+    iosxr_check_args(module, warnings)
     if module.params['comment']:
         if len(module.params['comment']) > 60:
             module.fail_json(msg='comment argument cannot be more than 60 characters')
@@ -240,8 +242,8 @@ def run(module, result):
 
             result['commands'] = commands
 
-        diff = load_config(module, commands, not check_mode,
-                           replace_config, comment)
+        diff = load_config(module, commands, result['warnings'],
+                           not check_mode, replace_config, comment)
         if diff:
             result['diff'] = dict(prepared=diff)
             result['changed'] = True

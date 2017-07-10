@@ -16,11 +16,10 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {
-    'status': ['preview'],
-    'supported_by': 'core',
-    'version': '1.0'
-}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = """
 ---
@@ -116,12 +115,12 @@ tasks:
 RETURN = """
 stdout:
   description: The set of responses from the commands
-  returned: always
+  returned: always apart from low level errors (such as action plugin)
   type: list
   sample: ['...', '...']
 stdout_lines:
   description: The value of stdout split into a list
-  returned: always
+  returned: always apart from low level errors (such as action plugin)
   type: list
   sample: [['...', '...'], ['...'], ['...']]
 failed_conditions:
@@ -219,11 +218,11 @@ def main():
         module.fail_json(msg=msg, failed_conditions=failed_conditions)
 
 
-    result = {
+    result.update({
         'changed': False,
         'stdout': responses,
         'stdout_lines': list(to_lines(responses))
-    }
+    })
 
     module.exit_json(**result)
 

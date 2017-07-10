@@ -16,9 +16,10 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ANSIBLE_METADATA = {'status': ['preview'],
-                    'supported_by': 'community',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['preview'],
+                    'supported_by': 'community'}
+
 
 DOCUMENTATION = """
 ---
@@ -40,15 +41,18 @@ options:
         Arista EOS device.  The list entries can either be the username
         or a hash of username and properties.  This argument is mutually
         exclusive with the C(username) argument.
-    required: false
-    default: null
   username:
     description:
       - The username to be configured on the remote Arista EOS
         device.  This argument accepts a stringv value and is mutually
         exclusive with the C(users) argument.
-    required: false
-    default: null
+        Please note that this option is not same as C(provider username).
+  password:
+    description:
+      - The password to be configured on the remote Arista EOS device. The
+        password needs to be provided in clear and it will be encrypted
+        on the device.
+        Please note that this option is not same as C(provider password).
   update_password:
     description:
       - Since passwords are encrypted in the device running config, this
@@ -56,7 +60,6 @@ options:
         set to C(always), the password will always be updated in the device
         and when set to C(on_create) the password will be updated only if
         the username is created.
-    required: false
     default: always
     choices: ['on_create', 'always']
   privilege:
@@ -64,47 +67,37 @@ options:
       - The C(privilege) argument configures the privilege level of the
         user when logged into the system.  This argument accepts integer
         values in the range of 1 to 15.
-    required: false
-    default: null
   role:
     description:
-      - The C(role) argument configures the role for the username in the
+      - Configures the role for the username in the
         device running configuration.  The argument accepts a string value
         defining the role name.  This argument does not check if the role
         has been configured on the device.
-    required: false
-    default: null
   sshkey:
     description:
-      - The C(sshkey) argument defines the SSH public key to configure
-        for the username.  This argument accepts a valid SSH key value.
-    required: false
-    default: null
+      - Specifies the SSH public key to configure
+        for the given username.  This argument accepts a valid SSH key value.
   nopassword:
     description:
-      - The C(nopassword) argument defines the username without assigning
+      - Defines the username without assigning
         a password.  This will allow the user to login to the system
-        without being authenticated by a password.  This argument accepts
-        boolean values.
-    required: false
-    default: null
-    choices: ['true', 'false']
+        without being authenticated by a password.
+    type: bool
   purge:
     description:
-      - The C(purge) argument instructs the module to consider the
+      - Instructs the module to consider the
         resource definition absolute.  It will remove any previously
         configured usernames on the device with the exception of the
         `admin` user which cannot be deleted per EOS constraints.
-    required: false
+    type: bool
     default: false
   state:
     description:
-      - The C(state) argument configures the state of the uername definition
+      - Configures the state of the username definition
         as it relates to the device operational configuration.  When set
         to I(present), the username(s) should be configured in the device active
         configuration and when set to I(absent) the username(s) should not be
         in the device active configuration
-    required: false
     default: present
     choices: ['present', 'absent']
 """
@@ -120,12 +113,20 @@ EXAMPLES = """
   eos_user:
     purge: yes
 
-- name: set multiple users to privilege level
-  users:
-    - username: netop
-    - username: netend
-  privilege: 15
-  state: present
+- name: set multiple users to privilege level 15
+  eos_user:
+    users:
+      - username: netop
+      - username: netend
+    privilege: 15
+    state: present
+
+- name: Change Password for User netop
+  eos_user:
+    username: netop
+    password: "{{ new_password }}"
+    update_password: always
+    state: present
 """
 
 RETURN = """
@@ -142,6 +143,7 @@ session_name:
   type: str
   sample: ansible_1479315771
 """
+
 import re
 
 from functools import partial
@@ -164,10 +166,16 @@ def map_obj_to_commands(updates, module):
         want, have = update
 
         needs_update = lambda x: want.get(x) and (want.get(x) != have.get(x))
-        add = lambda x: commands.append('username %s %s' % (want['username'], x))
+        if 'name' in want:
+            add = lambda x: commands.append('username %s %s' % (want['name'], x))
+        else:
+            add = lambda x: commands.append('username %s %s' % (want['username'], x))
 
         if want['state'] == 'absent':
-            commands.append('no username %s' % want['username'])
+            if 'name' in want:
+                commands.append('no username %s' % want['name'])
+            else:
+                commands.append('no username %s' % want['username'])
             continue
 
         if needs_update('role'):
@@ -187,7 +195,10 @@ def map_obj_to_commands(updates, module):
             if want['nopassword']:
                 add('nopassword')
             else:
-                add('no username %s nopassword' % want['username'])
+                if 'name' in want:
+                    add('no username %s nopassword' % want['name'])
+                else:
+                    add('no username %s nopassword' % want['username'])
 
     return commands
 
@@ -217,7 +228,7 @@ def map_config_to_obj(module):
 
     for user in set(match):
         regex = r'username %s .+$' % user
-        cfg = re.findall(r'username %s .+$' % user, data, re.M)
+        cfg = re.findall(regex, data, re.M)
         cfg = '\n'.join(cfg)
         obj = {
             'username': user,
@@ -265,7 +276,7 @@ def map_params_to_obj(module):
         for item in users:
             if not isinstance(item, dict):
                 collection.append({'username': item})
-            elif 'username' not in item:
+            elif all(u not in item for u in ['username', 'name']):
                 module.fail_json(msg='username is required')
             else:
                 collection.append(item)
@@ -287,7 +298,11 @@ def map_params_to_obj(module):
 def update_objects(want, have):
     updates = list()
     for entry in want:
-        item = next((i for i in have if i['username'] == entry['username']), None)
+        if 'name' in entry:
+            item = next((i for i in have if i['username'] == entry['name']), None)
+        else:
+            item = next((i for i in have if i['username'] == entry['username']), None)
+
         if all((item is None, entry['state'] == 'present')):
             updates.append((entry, {}))
         elif item:
@@ -300,8 +315,8 @@ def main():
     """ main entry point for module execution
     """
     argument_spec = dict(
-        users=dict(type='list', no_log=True),
-        username=dict(),
+        users=dict(type='list', aliases=['collection']),
+        username=dict(aliases=['name']),
 
         password=dict(no_log=True),
         nopassword=dict(type='bool'),
@@ -317,7 +332,6 @@ def main():
     )
 
     argument_spec.update(eos_argument_spec)
-
     mutually_exclusive = [('username', 'users')]
 
     module = AnsibleModule(argument_spec=argument_spec,
@@ -337,7 +351,7 @@ def main():
     commands = map_obj_to_commands(update_objects(want, have), module)
 
     if module.params['purge']:
-        want_users = [x['username'] for x in want]
+        want_users = [x['username'] if 'username' in x else x['name'] for x in want]
         have_users = [x['username'] for x in have]
         for item in set(have_users).difference(want_users):
             if item != 'admin':

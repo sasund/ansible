@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
-ANSIBLE_METADATA = {'status': ['stableinterface'],
-                    'supported_by': 'core',
-                    'version': '1.0'}
+ANSIBLE_METADATA = {'metadata_version': '1.0',
+                    'status': ['stableinterface'],
+                    'supported_by': 'core'}
+
 
 DOCUMENTATION = '''
 ---
@@ -49,6 +50,7 @@ description:
        available. There is no change handler support for this module.
      - This module does not require python on the remote system, much like
        the M(script) module.
+     - This module is also supported for Windows targets.
 notes:
     - "If using raw from a playbook, you may need to disable fact gathering
       using C(gather_facts: no) if you're using C(raw) to bootstrap python
@@ -58,6 +60,7 @@ notes:
     - the C(environment) keyword does not work with raw normally, it requires a shell
       which means it only works if C(executable) is set or using the module
       with privilege escalation (C(become)).
+    - This module is also supported for Windows targets.
 author:
     - Ansible Core Team
     - Michael DeHaan
